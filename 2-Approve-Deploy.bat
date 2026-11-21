@@ -1,82 +1,91 @@
 @echo off
-chcp 65001 >nul
-title [2] ตรวจสอบและอนุมัติอัปเดตขึ้นเว็บจริง (Approve & Deploy)
+title [2] Approve and Deploy to Production - NEON BEAT KARAOKE
 color 0A
 
 cd /d "%~dp0"
 
 echo ========================================================
-echo   🚀 ระบบตรวจสอบความถูกต้อง และอนุมัติขึ้นเว็บจริง (Deploy)
+echo   [2] VERIFY AND APPROVE DEPLOY TO LIVE WEBSITE
 echo ========================================================
 echo.
 
-:: Step 1: Check if there are any changes
-echo [ขั้นตอนที่ 1/3] ตรวจสอบรายการไฟล์ที่มีการแก้ไข...
+echo [Step 1/3] Checking modified files...
 git status -s
 echo.
 
-:: Step 2: Run build test if Node is installed
 where node >nul 2>nul
-if %errorlevel% equ 0 (
-    echo [ขั้นตอนที่ 2/3] กำลังตรวจสอบโค้ดว่ามี Error หรือไม่ (npm run build)...
-    if not exist "node_modules\" (
-        call npm install
-    )
-    call npm run build
-    if %errorlevel% neq 0 (
-        color 0C
-        echo.
-        echo ========================================================
-        echo   ❌ พบข้อผิดพลาด (Error) ในโค้ด!
-        echo   ระบบระงับการอัปเดตขึ้นเว็บจริง เพื่อป้องกันเว็บล่ม
-        echo   กรุณาแก้ไขจุดที่แจ้งเตือนสีแดงด้านบนก่อนลองใหม่อีกครั้ง
-        echo ========================================================
-        pause
-        exit /b
-    )
-    echo.
-    echo   ✅ ตรวจสอบผ่าน 100%% ไม่พบ Error ในระบบ!
-) else (
-    echo [!] ข้ามการตรวจ Build ในเครื่อง (เนื่องจากยังไม่ได้ลง Node.js)
-    echo     Vercel จะทำหน้าที่ตรวจเช็คความถูกต้องให้อีกชั้นบนคลาวด์
-)
+if %errorlevel% neq 0 goto SKIP_LOCAL_BUILD
 
+echo [Step 2/3] Checking for errors (npm run build)...
+if not exist "node_modules\" (
+    call npm install
+)
+call npm run build
+if %errorlevel% neq 0 goto BUILD_FAILED
+
+echo.
+echo [OK] Build check PASSED 100%% - No errors found!
+goto ASK_APPROVAL
+
+:SKIP_LOCAL_BUILD
+echo [Step 2/3] Skipping local build check (Node.js not in PATH).
+echo            Vercel Cloud will verify the build automatically.
+
+:ASK_APPROVAL
 echo.
 echo ========================================================
-echo   [ขั้นตอนที่ 3/3] ยืนยันการอนุมัติ Deploy ขึ้นเว็บจริง
+echo   [Step 3/3] CONFIRM APPROVAL TO DEPLOY
+echo   Target: https://karaoke-booking-web.vercel.app/
 echo ========================================================
-set /p confirm="พิมพ์ Y แล้วกด Enter เพื่ออนุมัติอัปเดตขึ้นเว็บจริง (หรือกดปุ่มอื่นเพื่อยกเลิก): "
+set "confirm="
+set /p confirm="Type Y and press Enter to APPROVE deploy (or N to cancel): "
 
-if /i "%confirm%" neq "Y" (
-    echo.
-    echo [ยกเลิก] ยังไม่ได้ส่งโค้ดขึ้นเว็บจริง
-    pause
-    exit /b
-)
+if /i not "%confirm%"=="Y" goto CANCELLED
 
 echo.
-set /p note="ระบุหมายเหตุสั้นๆ (หรือกด Enter ข้ามได้เลย): "
-if "%note%"=="" set note=Approved update to production
+set "note="
+set /p note="Enter short update note (or press Enter to skip): "
+if "%note%"=="" set "note=Approved update to production"
 
 echo.
-echo [*] กำลังส่งข้อมูลอัปเดตขึ้นเว็บจริง...
+echo [*] Deploying update to GitHub and Vercel...
 git add .
 git commit -m "%note%"
 git push origin main
 
-if %errorlevel% equ 0 (
-    color 0A
-    echo.
-    echo ========================================================
-    echo   🎉 อนุมัติและส่งขึ้นระบบสำเร็จเรียบร้อย!
-    echo   รอประมาณ 45-60 วินาที เว็บจริงจะอัปเดตอัตโนมัติที่:
-    echo   https://karaoke-booking-web.vercel.app/
-    echo ========================================================
-    start "" "https://karaoke-booking-web.vercel.app/"
-) else (
-    color 0C
-    echo.
-    echo [!] เกิดข้อผิดพลาดในการส่งโค้ดขึ้น GitHub กรุณาตรวจสอบอินเทอร์เน็ต
-)
+if %errorlevel% neq 0 goto PUSH_FAILED
 
+color 0A
+echo.
+echo ========================================================
+echo   [SUCCESS] DEPLOY APPROVED AND SENT TO VERCEL!
+echo   Your live website will update in ~45 seconds:
+echo   https://karaoke-booking-web.vercel.app/
+echo ========================================================
+start "" "https://karaoke-booking-web.vercel.app/"
 pause
+exit /b
+
+:BUILD_FAILED
+color 0C
+echo.
+echo ========================================================
+echo   [ERROR] Code verification FAILED!
+echo   Deployment blocked to protect your live website.
+echo   Please fix the errors shown above and try again.
+echo ========================================================
+pause
+exit /b
+
+:PUSH_FAILED
+color 0C
+echo.
+echo [!] Failed to push to GitHub. Please check your internet or login.
+pause
+exit /b
+
+:CANCELLED
+echo.
+echo [Cancelled] Deployment was not approved.
+pause
+exit /b
