@@ -1,0 +1,96 @@
+// Prisma Schema for Karaoke Booking Web
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum RoomType {
+  STANDARD_S // 2-4 persons
+  STANDARD_M // 5-8 persons
+  PARTY_L    // 9-15 persons
+  VIP_LUXURY // 15-25 persons with private restroom & DJ mixer
+}
+
+enum BookingStatus {
+  PENDING   // Awaiting admin/slip verification
+  CONFIRMED // Verified & Room Reserved
+  CANCELLED // Cancelled by customer or admin
+  REJECTED  // Invalid slip or payment failed
+  COMPLETED // Finished session
+}
+
+model Room {
+  id           String        @id @default(uuid())
+  roomNumber   String        @unique
+  name         String
+  type         RoomType      @default(STANDARD_S)
+  capacityMin  Int           @default(2)
+  capacityMax  Int           @default(6)
+  pricePerHour Decimal       @db.Decimal(10, 2)
+  description  String?
+  features     String[]      @default([]) // e.g. ["4K Screen", "Dual Wireless Mic", "Soundproofing"]
+  imageUrl     String?
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  bookings     Booking[]
+
+  @@map("rooms")
+}
+
+model PackageAddon {
+  id          String           @id @default(uuid())
+  name        String
+  description String?
+  price       Decimal          @db.Decimal(10, 2)
+  isAvailable Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  bookings    BookingPackage[]
+
+  @@map("package_addons")
+}
+
+model Booking {
+  id             String           @id @default(uuid())
+  bookingCode    String           @unique // e.g. "KB-20261122-XXXX"
+  roomId         String
+  room           Room             @relation(fields: [roomId], references: [id])
+  customerName   String
+  customerPhone  String
+  customerEmail  String?
+  bookingDate    DateTime         @db.Date
+  startTime      String           // e.g. "18:00"
+  endTime        String           // e.g. "21:00"
+  totalHours     Int
+  roomCharge     Decimal          @db.Decimal(10, 2)
+  packageCharge  Decimal          @default(0) @db.Decimal(10, 2)
+  totalAmount    Decimal          @db.Decimal(10, 2)
+  depositAmount  Decimal          @db.Decimal(10, 2)
+  status         BookingStatus    @default(PENDING)
+  slipImageUrl   String?
+  adminNotes     String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  packages       BookingPackage[]
+
+  // Constraint to help query conflicts
+  @@index([roomId, bookingDate, status])
+  @@map("bookings")
+}
+
+model BookingPackage {
+  id         String       @id @default(uuid())
+  bookingId  String
+  packageId  String
+  quantity   Int          @default(1)
+  price      Decimal      @db.Decimal(10, 2)
+  booking    Booking      @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  package    PackageAddon @relation(fields: [packageId], references: [id])
+
+  @@map("booking_packages")
+}
