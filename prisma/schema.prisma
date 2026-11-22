@@ -1,4 +1,4 @@
-// Prisma Schema for Karaoke Booking Web
+// Prisma Schema for MOOD Karaoke Booking Web
 generator client {
   provider = "prisma-client-js"
 }
@@ -12,8 +12,8 @@ datasource db {
 enum RoomType {
   STANDARD_S // 2-4 persons
   STANDARD_M // 5-8 persons
-  PARTY_L    // 9-15 persons
-  VIP_LUXURY // 15-25 persons with private restroom & DJ mixer
+  PARTY_L    // 9-14 persons
+  VIP_LUXURY // 15-22 persons
 }
 
 enum BookingStatus {
@@ -22,6 +22,20 @@ enum BookingStatus {
   CANCELLED // Cancelled by customer or admin
   REJECTED  // Invalid slip or payment failed
   COMPLETED // Finished session
+}
+
+model Member {
+  id                    String    @id @default(uuid())
+  phone                 String    @unique // 10-digit phone number as login ID
+  name                  String
+  pinHash               String    // 6-digit PIN hash
+  totalHoursAccumulated Int       @default(0)
+  freeHoursAvailable    Int       @default(0)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  bookings              Booking[]
+
+  @@map("members")
 }
 
 model Room {
@@ -33,7 +47,7 @@ model Room {
   capacityMax  Int           @default(6)
   pricePerHour Decimal       @db.Decimal(10, 2)
   description  String?
-  features     String[]      @default([]) // e.g. ["4K Screen", "Dual Wireless Mic", "Soundproofing"]
+  features     String[]      @default([])
   imageUrl     String?
   isActive     Boolean       @default(true)
   createdAt    DateTime      @default(now())
@@ -57,15 +71,17 @@ model PackageAddon {
 
 model Booking {
   id             String           @id @default(uuid())
-  bookingCode    String           @unique // e.g. "KB-20261122-XXXX"
+  bookingCode    String           @unique
   roomId         String
   room           Room             @relation(fields: [roomId], references: [id])
+  memberId       String?
+  member         Member?          @relation(fields: [memberId], references: [id])
   customerName   String
   customerPhone  String
   customerEmail  String?
   bookingDate    DateTime         @db.Date
-  startTime      String           // e.g. "18:00"
-  endTime        String           // e.g. "21:00"
+  startTime      String
+  endTime        String
   totalHours     Int
   roomCharge     Decimal          @db.Decimal(10, 2)
   packageCharge  Decimal          @default(0) @db.Decimal(10, 2)
@@ -78,8 +94,8 @@ model Booking {
   updatedAt      DateTime         @updatedAt
   packages       BookingPackage[]
 
-  // Constraint to help query conflicts
   @@index([roomId, bookingDate, status])
+  @@index([customerPhone])
   @@map("bookings")
 }
 

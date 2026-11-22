@@ -9,13 +9,19 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        karaoke: {
-          purple: "#7c3aed",
-          pink: "#db2777",
-          dark: "#0f172a",
-          card: "#1e293b",
-          neon: "#a855f7",
-        },
+        alabaster: "#F7F5F0",
+        stone: "#EFECE6",
+        ink: "#121212",
+        muted: "#68645E",
+        accent: "#D9381E",
+      },
+      fontFamily: {
+        display: ["'Nunito'", "'Mitr'", "'Prompt'", "sans-serif"],
+        sans: ["'Nunito'", "'Prompt'", "-apple-system", "sans-serif"],
+        mono: ["'Nunito'", "'Prompt'", "sans-serif"],
+      },
+      transitionTimingFunction: {
+        editorial: "cubic-bezier(0.16, 1, 0.3, 1)",
       },
     },
   },

@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { Users, CheckCircle2, ArrowRight } from 'lucide-react';
 import { Room } from '@/types';
 import { formatBaht } from '@/lib/utils';
 
@@ -9,57 +8,34 @@ interface RoomCardProps {
 
 export default function RoomCard({ room }: RoomCardProps) {
   return (
-    <div className="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden hover:border-purple-500/50 hover:shadow-2xl hover:shadow-purple-500/10 transition group flex flex-col">
-      {/* Room Image */}
-      <div className="relative h-48 w-full overflow-hidden bg-slate-950">
-        <img
-          src={room.imageUrl || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800'}
-          alt={room.name}
-          className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-        />
-        <div className="absolute top-3 left-3 bg-slate-950/80 backdrop-blur-md px-3 py-1 rounded-full border border-purple-500/30 text-xs font-semibold text-purple-300">
-          ห้อง {room.roomNumber}
+    <div className="bg-[#F7F5F0] hairline-all p-6 flex flex-col justify-between editorial-transition hover:bg-[#EFECE6]/50">
+      <div>
+        <div className="flex justify-between items-baseline font-tech text-xs text-[#68645E] mb-3">
+          <span>{room.roomNumber}</span>
+          <span>{room.capacityMin}–{room.capacityMax} PERSONS</span>
         </div>
-        <div className="absolute top-3 right-3 bg-purple-600/90 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-white shadow">
-          {formatBaht(room.pricePerHour)} / ชม.
+
+        <div className="image-zoom-frame aspect-[4/3] w-full hairline-all mb-4 bg-[#EFECE6]">
+          <img
+            src={room.imageUrl}
+            alt={room.name}
+            className="w-full h-full object-cover"
+          />
         </div>
+
+        <h3 className="font-display text-3xl text-[#121212] mb-2">{room.name}</h3>
+        <p className="text-xs text-[#68645E] leading-relaxed mb-4">{room.description}</p>
       </div>
 
-      {/* Room Details */}
-      <div className="p-5 flex-1 flex flex-col justify-between">
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-lg font-bold text-white group-hover:text-purple-300 transition">
-              {room.name}
-            </h3>
-            <div className="flex items-center gap-1.5 text-xs text-slate-400 bg-slate-800/80 px-2.5 py-1 rounded-lg">
-              <Users className="w-3.5 h-3.5 text-purple-400" />
-              <span>{room.capacityMin} - {room.capacityMax} ท่าน</span>
-            </div>
-          </div>
-
-          <p className="text-xs text-slate-400 line-clamp-2 mb-4">
-            {room.description}
-          </p>
-
-          {/* Features */}
-          <div className="space-y-1.5 mb-5">
-            {room.features?.map((feature, idx) => (
-              <div key={idx} className="flex items-center gap-2 text-xs text-slate-300">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-                <span>{feature}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* CTA Button */}
+      <div className="pt-4 hairline-t flex items-center justify-between">
+        <span className="font-tech text-sm font-semibold text-[#121212]">
+          {formatBaht(room.pricePerHour)} / HR
+        </span>
         <Link
           href={`/booking?roomId=${room.id}`}
-          className="w-full py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-purple-600/20 transition"
+          className="font-tech text-xs uppercase tracking-wider text-[#D9381E] link-editorial"
         >
-          <span>เลือกจองห้องนี้</span>
-          <ArrowRight className="w-4 h-4" />
+          RESERVE →
         </Link>
       </div>
     </div>

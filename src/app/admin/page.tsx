@@ -1,86 +1,184 @@
 'use client';
 
 import { useState } from 'react';
-import { 
-  ShieldCheck, 
-  Check, 
-  X, 
-  Calendar, 
-  Clock, 
-  Phone, 
-  FileText, 
-  DollarSign, 
-  AlertCircle 
-} from 'lucide-react';
 import { formatBaht, getStatusBadge } from '@/lib/utils';
 import { Booking, BookingStatus } from '@/types';
+import { StaffAccount, verifyStaffPin } from '@/lib/member-store';
 
 const INITIAL_ADMIN_BOOKINGS: Booking[] = [
   {
     id: 'b-101',
-    bookingCode: 'KB-20261122-A8F29',
+    bookingCode: 'MD-20261122-8F29',
     roomId: 'room-2',
-    customerName: 'คุณสมชาย ใจดี',
+    customerName: 'มิ้นท์ (แก๊ง ม.6/2)',
     customerPhone: '0812345678',
-    customerEmail: 'somchai@example.com',
+    customerEmail: 'mint@student.ac.th',
     bookingDate: '2026-11-22',
-    startTime: '19:00',
-    endTime: '22:00',
-    totalHours: 3,
-    roomCharge: 1200,
-    packageCharge: 299,
-    totalAmount: 1499,
-    depositAmount: 750,
+    startTime: '16:00',
+    endTime: '18:00',
+    totalHours: 2,
+    roomCharge: 400,
+    packageCharge: 0,
+    totalAmount: 400,
+    depositAmount: 400,
     status: 'PENDING',
     slipImageUrl: 'https://images.unsplash.com/photo-1554415707-9e4466bfe0dc?w=400',
     createdAt: '2026-11-22T10:00:00Z',
   },
   {
     id: 'b-102',
-    bookingCode: 'KB-20261122-C3112',
+    bookingCode: 'MD-20261122-3112',
     roomId: 'room-3',
-    customerName: 'คุณณิชา ศิริพร',
+    customerName: 'เจเจ (ชมรมดนตรี ร.ว.)',
     customerPhone: '0899887766',
     bookingDate: '2026-11-22',
-    startTime: '20:00',
-    endTime: '23:00',
+    startTime: '18:00',
+    endTime: '21:00',
     totalHours: 3,
-    roomCharge: 1950,
-    packageCharge: 390,
-    totalAmount: 2340,
-    depositAmount: 1170,
+    roomCharge: 840,
+    packageCharge: 0,
+    totalAmount: 840,
+    depositAmount: 840,
     status: 'CONFIRMED',
     slipImageUrl: 'https://images.unsplash.com/photo-1554415707-9e4466bfe0dc?w=400',
     createdAt: '2026-11-22T08:15:00Z',
   },
   {
     id: 'b-103',
-    bookingCode: 'KB-20261122-D9481',
+    bookingCode: 'MD-20261122-9481',
     roomId: 'room-1',
-    customerName: 'คุณเกรียงไกร มีสุข',
+    customerName: 'ปอนด์ & พลอย',
     customerPhone: '0823334444',
     bookingDate: '2026-11-22',
     startTime: '15:00',
     endTime: '17:00',
     totalHours: 2,
-    roomCharge: 500,
+    roomCharge: 280,
     packageCharge: 0,
-    totalAmount: 500,
-    depositAmount: 250,
+    totalAmount: 280,
+    depositAmount: 280,
     status: 'COMPLETED',
     createdAt: '2026-11-22T06:00:00Z',
   },
 ];
 
 export default function AdminPage() {
+  const [activeStaff, setActiveStaff] = useState<StaffAccount | null>(null);
+  const [pinInput, setPinInput] = useState('');
+  const [pinError, setPinError] = useState('');
+
   const [bookings, setBookings] = useState<Booking[]>(INITIAL_ADMIN_BOOKINGS);
   const [filter, setFilter] = useState<'ALL' | BookingStatus>('ALL');
+
+  const handleStaffDigit = (digit: string) => {
+    setPinError('');
+    if (pinInput.length < 6) {
+      const next = pinInput + digit;
+      setPinInput(next);
+      if (next.length === 6) {
+        setTimeout(() => {
+          const staff = verifyStaffPin(next);
+          if (staff) {
+            setActiveStaff(staff);
+            setPinInput('');
+          } else {
+            setPinError('รหัส PIN พนักงานไม่ถูกต้อง (รหัสทดสอบคือ 888888)');
+            setPinInput('');
+          }
+        }, 120);
+      }
+    }
+  };
 
   const updateStatus = (id: string, newStatus: BookingStatus) => {
     setBookings((prev) =>
       prev.map((b) => (b.id === id ? { ...b, status: newStatus } : b))
     );
   };
+
+  if (!activeStaff) {
+    return (
+      <div className="max-w-md mx-auto px-4 py-16 sm:py-24">
+        <div className="hairline-all bg-[#F7F5F0] p-8 sm:p-10 text-center">
+          <span className="font-tech text-[11px] uppercase tracking-widest text-[#D9381E] block">
+            STAFF ONLY — พนักงานหน้าร้าน
+          </span>
+          <h1 className="font-display text-3xl sm:text-4xl text-[#121212] mt-1">
+            Staff Counter Lock
+          </h1>
+          <p className="text-xs text-[#68645E] mt-2 mb-6">
+            กรุณากดรหัส PIN 6 หลักสำหรับพนักงานหน้าร้านเพื่อเข้าจัดการคิวห้อง
+          </p>
+
+          {/* 6 PIN Dots */}
+          <div className="flex items-center justify-center gap-4 py-4 mb-4">
+            {Array.from({ length: 6 }).map((_, idx) => {
+              const filled = idx < pinInput.length;
+              return (
+                <div
+                  key={idx}
+                  className={`w-4 h-4 rounded-full border transition-all ${
+                    filled
+                      ? 'bg-[#121212] border-[#121212] scale-110'
+                      : 'bg-transparent border-[#121212]/30'
+                  }`}
+                />
+              );
+            })}
+          </div>
+
+          {pinError && (
+            <div className="mb-4 p-2.5 hairline-all bg-[#D9381E]/10 text-[#D9381E] text-xs font-medium">
+              {pinError}
+            </div>
+          )}
+
+          {/* Keypad */}
+          <div className="grid grid-cols-3 hairline-t hairline-l select-none mb-6">
+            {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => (
+              <button
+                type="button"
+                key={d}
+                onClick={() => handleStaffDigit(d)}
+                className="py-3.5 hairline-r hairline-b bg-[#F7F5F0] hover:bg-[#EFECE6] active:bg-[#121212] active:text-[#F7F5F0] text-base font-bold"
+              >
+                {d}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => setPinInput('')}
+              className="py-3.5 hairline-r hairline-b bg-[#EFECE6]/50 text-xs font-bold text-[#68645E]"
+            >
+              CLR
+            </button>
+            <button
+              type="button"
+              onClick={() => handleStaffDigit('0')}
+              className="py-3.5 hairline-r hairline-b bg-[#F7F5F0] hover:bg-[#EFECE6] text-base font-bold"
+            >
+              0
+            </button>
+            <button
+              type="button"
+              onClick={() => setPinInput((p) => p.slice(0, -1))}
+              className="py-3.5 hairline-r hairline-b bg-[#EFECE6]/50 text-xs font-bold text-[#121212]"
+            >
+              ⌫
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setActiveStaff(verifyStaffPin('888888'))}
+            className="text-xs font-semibold text-[#68645E] hover:text-[#121212] underline"
+          >
+            [โหมดทดสอบ: รหัสพนักงานคือ 888888 หรือคลิกที่นี่เพื่อเข้าทันที]
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const filtered = filter === 'ALL' ? bookings : bookings.filter((b) => b.status === filter);
 
@@ -91,127 +189,141 @@ export default function AdminPage() {
     .reduce((sum, b) => sum + b.totalAmount, 0);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <div className="max-w-[1400px] mx-auto px-4 sm:px-8 py-12 sm:py-16">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-6 border-b border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-8 hairline-b mb-10">
         <div>
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-6 h-6 text-purple-400" />
-            <h1 className="text-2xl font-extrabold text-white">ระบบจัดการหน้าร้าน (Admin Portal)</h1>
-          </div>
-          <p className="text-slate-400 text-xs sm:text-sm mt-1">
-            ตรวจสอบหลักฐานการโอนเงิน ยืนยันคิวห้องคาราโอเกะ และดูสถิติการจอง
+          <p className="font-tech text-xs text-[#D9381E]">
+            STAFF COUNTER — {activeStaff.staffId} : {activeStaff.name}
           </p>
+          <h1 className="font-display text-4xl sm:text-5xl text-[#121212] mt-2 leading-tight">
+            จัดการคิวห้องหน้าร้าน
+          </h1>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs rounded-full border border-emerald-500/30 flex items-center gap-1.5 font-medium">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            ระบบออนไลน์ปกติ
-          </span>
+        <div className="flex items-center gap-3 self-start sm:self-end">
+          <div className="text-xs font-bold px-3.5 py-2 hairline-all bg-[#EFECE6] text-[#121212] flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#D9381E]" />
+            <span>สาขา : ร้อยเอ็ด 1</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setActiveStaff(null)}
+            className="text-xs font-bold px-3.5 py-2 hairline-all hover:bg-[#121212] hover:text-[#F7F5F0] editorial-transition"
+          >
+            ล็อกหน้าจอพนักงาน
+          </button>
         </div>
       </div>
 
-      {/* KPI Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
-        <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800">
-          <div className="flex justify-between items-center text-slate-400 text-xs mb-2">
-            <span>รอตรวจสลิปโอนมัดจำ</span>
-            <AlertCircle className="w-4 h-4 text-amber-400" />
+      {/* Metric Strip */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 hairline-all mb-10 bg-[#EFECE6]/50">
+        <div className="p-6 sm:p-8 hairline-b sm:border-b-0 sm:hairline-r">
+          <span className="text-xs font-bold text-[#68645E] block mb-2">
+            01 / ยอดรอตรวจสลิป
+          </span>
+          <div className="font-display text-4xl text-[#D9381E]">
+            {pendingCount} <span className="text-sm font-normal text-[#68645E]">รายการ</span>
           </div>
-          <div className="text-3xl font-extrabold text-amber-400">{pendingCount} รายการ</div>
         </div>
 
-        <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800">
-          <div className="flex justify-between items-center text-slate-400 text-xs mb-2">
-            <span>ยืนยันห้องแล้ว (Active)</span>
-            <Check className="w-4 h-4 text-emerald-400" />
+        <div className="p-6 sm:p-8 hairline-b sm:border-b-0 sm:hairline-r">
+          <span className="text-xs font-bold text-[#68645E] block mb-2">
+            02 / จำนวนห้องที่ยืนยันแล้ว
+          </span>
+          <div className="font-display text-4xl text-[#121212]">
+            {confirmedCount} <span className="text-sm font-normal text-[#68645E]">ห้อง</span>
           </div>
-          <div className="text-3xl font-extrabold text-emerald-400">{confirmedCount} รายการ</div>
         </div>
 
-        <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800">
-          <div className="flex justify-between items-center text-slate-400 text-xs mb-2">
-            <span>ยอดขายที่ยืนยันแล้ว</span>
-            <DollarSign className="w-4 h-4 text-purple-400" />
+        <div className="p-6 sm:p-8">
+          <span className="text-xs font-bold text-[#68645E] block mb-2">
+            03 / ยอดขายรวม
+          </span>
+          <div className="font-display text-4xl text-[#121212]">
+            {formatBaht(totalRevenue)}
           </div>
-          <div className="text-3xl font-extrabold text-white">{formatBaht(totalRevenue)}</div>
         </div>
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2">
+      <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-2 text-xs font-bold">
         {(['ALL', 'PENDING', 'CONFIRMED', 'COMPLETED', 'REJECTED'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setFilter(tab)}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition ${
+            className={`px-5 py-2.5 editorial-transition ${
               filter === tab
-                ? 'bg-purple-600 text-white shadow-md'
-                : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                ? 'bg-[#121212] text-[#F7F5F0]'
+                : 'hairline-all bg-[#F7F5F0] text-[#68645E] hover:text-[#121212]'
             }`}
           >
             {tab === 'ALL' && 'ทั้งหมด'}
             {tab === 'PENDING' && `รอตรวจสลิป (${pendingCount})`}
             {tab === 'CONFIRMED' && 'ยืนยันแล้ว'}
             {tab === 'COMPLETED' && 'เสร็จสิ้น'}
-            {tab === 'REJECTED' && 'สลิปไม่ผ่าน'}
+            {tab === 'REJECTED' && 'ปฏิเสธ'}
           </button>
         ))}
       </div>
 
-      {/* Bookings Table / Cards */}
-      <div className="space-y-4">
+      {/* Bookings Ledger Rows */}
+      <div className="hairline-t">
         {filtered.map((item) => {
           const badge = getStatusBadge(item.status);
+          const roomLabel =
+            item.roomId === 'room-3'
+              ? 'ST-201 · Reunion(L)'
+              : item.roomId === 'room-2'
+              ? 'ST-102 · Get-together(M)'
+              : 'ST-101 · Catch-Up(S)';
+
           return (
             <div
               key={item.id}
-              className="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 transition flex flex-col lg:flex-row lg:items-center justify-between gap-6"
+              className="py-6 px-4 sm:px-6 hairline-b hover:bg-[#EFECE6]/50 editorial-transition flex flex-col lg:flex-row lg:items-center justify-between gap-6"
             >
               {/* Left Info */}
               <div className="space-y-2">
-                <div className="flex items-center gap-3">
-                  <span className="font-mono text-sm font-bold text-purple-400">
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="text-sm font-bold text-[#121212]">
                     {item.bookingCode}
                   </span>
-                  <span
-                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${badge.color}`}
-                  >
+                  <span className="text-xs font-bold px-2.5 py-0.5 bg-[#EFECE6] hairline-all">
+                    {roomLabel}
+                  </span>
+                  <span className={`text-xs font-bold px-2.5 py-0.5 border ${badge.color}`}>
                     {badge.label}
                   </span>
                 </div>
 
-                <div className="text-sm font-bold text-white flex items-center gap-2">
-                  <span>{item.customerName}</span>
-                  <span className="text-xs font-normal text-slate-400">({item.customerPhone})</span>
+                <div className="text-base font-bold text-[#121212]">
+                  {item.customerName}{' '}
+                  <span className="text-xs font-normal text-[#68645E] ml-2">
+                    เบอร์โทร: {item.customerPhone}
+                  </span>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-4 text-xs text-slate-400">
-                  <span className="flex items-center gap-1">
-                    <Calendar className="w-3.5 h-3.5 text-purple-400" />
-                    {item.bookingDate}
+                <div className="flex flex-wrap items-center gap-6 text-xs text-[#68645E]">
+                  <span>วันที่: {item.bookingDate}</span>
+                  <span>
+                    เวลา: {item.startTime}–{item.endTime} น. ({item.totalHours} ชม.)
                   </span>
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5 text-pink-400" />
-                    {item.startTime} - {item.endTime} น. ({item.totalHours} ชม.)
-                  </span>
-                  <span className="text-amber-400 font-semibold">
-                    มัดจำ: {formatBaht(item.depositAmount)} / ยอดเต็ม: {formatBaht(item.totalAmount)}
+                  <span className="text-[#121212] font-bold">
+                    ยอดชำระ: <strong className="text-[#D9381E]">{formatBaht(item.totalAmount)}</strong>
                   </span>
                 </div>
               </div>
 
-              {/* Actions & Slip Preview */}
-              <div className="flex items-center gap-3 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-800">
+              {/* Right Actions */}
+              <div className="flex flex-wrap items-center gap-3 text-xs font-bold">
                 {item.slipImageUrl && (
                   <a
                     href={item.slipImageUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium flex items-center gap-1.5 transition"
+                    className="px-4 py-2.5 hairline-all bg-[#F7F5F0] hover:bg-[#EFECE6] text-[#121212] editorial-transition"
                   >
-                    <FileText className="w-3.5 h-3.5 text-purple-400" />
-                    <span>ดูสลิปโอน</span>
+                    ดูสลิป ↗
                   </a>
                 )}
 
@@ -219,17 +331,15 @@ export default function AdminPage() {
                   <>
                     <button
                       onClick={() => updateStatus(item.id, 'CONFIRMED')}
-                      className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow"
+                      className="px-5 py-2.5 bg-[#121212] hover:bg-[#D9381E] text-[#F7F5F0] editorial-transition"
                     >
-                      <Check className="w-3.5 h-3.5" />
-                      <span>อนุมัติห้อง</span>
+                      ✓ อนุมัติห้อง
                     </button>
                     <button
                       onClick={() => updateStatus(item.id, 'REJECTED')}
-                      className="px-3 py-2 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 text-xs font-semibold border border-rose-500/30 transition flex items-center gap-1.5"
+                      className="px-4 py-2.5 hairline-all text-[#D9381E] hover:bg-[#D9381E] hover:text-[#F7F5F0] editorial-transition"
                     >
-                      <X className="w-3.5 h-3.5" />
-                      <span>ปฏิเสธสลิป</span>
+                      × ปฏิเสธ
                     </button>
                   </>
                 )}
@@ -237,10 +347,9 @@ export default function AdminPage() {
                 {item.status === 'CONFIRMED' && (
                   <button
                     onClick={() => updateStatus(item.id, 'COMPLETED')}
-                    className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition flex items-center gap-1.5"
+                    className="px-5 py-2.5 hairline-all bg-[#121212] text-[#F7F5F0] hover:bg-[#68645E] editorial-transition"
                   >
-                    <Check className="w-3.5 h-3.5" />
-                    <span>เช็คเอาท์ (เสร็จสิ้น)</span>
+                    เช็คเอาท์ (เสร็จสิ้น)
                   </button>
                 )}
               </div>

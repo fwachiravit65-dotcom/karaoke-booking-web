@@ -22,16 +22,16 @@ export function calculateEndTime(startTime: string, hours: number): string {
 export function getStatusBadge(status: string) {
   switch (status) {
     case 'CONFIRMED':
-      return { label: 'ยืนยันแล้ว', color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' };
+      return { label: 'CONFIRMED · ยืนยันห้องแล้ว', color: 'bg-[#121212] text-[#F7F5F0] border-[#121212]' };
     case 'PENDING':
-      return { label: 'รอตรวจสอบสลิป', color: 'bg-amber-500/20 text-amber-400 border-amber-500/30' };
+      return { label: 'PENDING · รอตรวจสลิป', color: 'bg-[#EFECE6] text-[#121212] border-[#121212]/30' };
     case 'REJECTED':
-      return { label: 'สลิปไม่ถูกต้อง', color: 'bg-rose-500/20 text-rose-400 border-rose-500/30' };
+      return { label: 'REJECTED · สลิปไม่ถูกต้อง', color: 'bg-[#D9381E]/10 text-[#D9381E] border-[#D9381E]/40' };
     case 'CANCELLED':
-      return { label: 'ยกเลิกแล้ว', color: 'bg-slate-500/20 text-slate-400 border-slate-500/30' };
+      return { label: 'CANCELLED · ยกเลิก', color: 'bg-transparent text-[#68645E] border-[#68645E]/30' };
     case 'COMPLETED':
-      return { label: 'เสร็จสิ้นบริการ', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' };
+      return { label: 'COMPLETED · เข้าใช้บริการแล้ว', color: 'bg-transparent text-[#121212] border-[#121212]' };
     default:
-      return { label: status, color: 'bg-gray-500/20 text-gray-400 border-gray-500/30' };
+      return { label: status, color: 'bg-transparent text-[#68645E] border-[#68645E]/30' };
   }
 }
