@@ -7,6 +7,7 @@ import {
   MemberProfile,
   getCurrentMember,
   addMemberHours,
+  saveNewBooking,
 } from '@/lib/member-store';
 
 export type SizeCategory = 'S' | 'M' | 'L';
@@ -182,6 +183,7 @@ const TIME_SLOTS = [
 export default function BookingPage() {
   const [activeMember, setActiveMember] = useState<MemberProfile | null>(null);
   const [selectedRoomKey, setSelectedRoomKey] = useState<string>('R1');
+  const [mobileFloorTab, setMobileFloorTab] = useState<'ALL' | 1 | 2>('ALL');
   const [bookingDate, setBookingDate] = useState<string>(() => {
     const today = new Date();
     return today.toISOString().split('T')[0];
@@ -274,10 +276,49 @@ export default function BookingPage() {
       });
 
       const data = await res.json();
+      const code =
+        data?.bookingCode ||
+        `MD-${bookingDate.replace(/-/g, '')}-${currentRoom.roomNumber}-${Math.random().toString(36).substring(2, 5).toUpperCase()}`;
+      saveNewBooking({
+        id: `b-${Date.now()}`,
+        bookingCode: code,
+        roomId: currentRoom.roomNumber,
+        customerName,
+        customerPhone,
+        bookingDate,
+        startTime,
+        endTime,
+        totalHours,
+        roomCharge: rawRoomCharge,
+        packageCharge: 0,
+        totalAmount,
+        depositAmount: totalAmount,
+        status: 'PENDING',
+        slipImageUrl: 'https://images.unsplash.com/photo-1554415707-9e4466bfe0dc?w=400',
+        createdAt: new Date().toISOString(),
+      });
       addMemberHours(customerPhone, totalHours);
-      setBookingResult(data);
+      setBookingResult({ ...data, success: true, bookingCode: code });
     } catch {
       const fakeCode = `MD-${bookingDate.replace(/-/g, '')}-${currentRoom.roomNumber}-${Math.random().toString(36).substring(2, 5).toUpperCase()}`;
+      saveNewBooking({
+        id: `b-${Date.now()}`,
+        bookingCode: fakeCode,
+        roomId: currentRoom.roomNumber,
+        customerName,
+        customerPhone,
+        bookingDate,
+        startTime,
+        endTime,
+        totalHours,
+        roomCharge: rawRoomCharge,
+        packageCharge: 0,
+        totalAmount,
+        depositAmount: totalAmount,
+        status: 'PENDING',
+        slipImageUrl: 'https://images.unsplash.com/photo-1554415707-9e4466bfe0dc?w=400',
+        createdAt: new Date().toISOString(),
+      });
       addMemberHours(customerPhone, totalHours);
       setBookingResult({
         success: true,
@@ -289,8 +330,8 @@ export default function BookingPage() {
     }
   };
 
-  // Customer-friendly Room Button with well-proportioned typography (zero text overflow)
-  const renderRoomBox = (roomKey: string, heightClass = 'min-h-[76px]') => {
+  // Airy, Non-Cramped Room Box for both Mobile & Desktop
+  const renderRoomBox = (roomKey: string, heightClass = 'min-h-[82px]') => {
     const r = ALL_ROOMS[roomKey];
     const isSelected = selectedRoomKey === roomKey;
     const isSameSize = r.size === currentRoom.size;
@@ -299,7 +340,7 @@ export default function BookingPage() {
       <button
         type="button"
         onClick={() => handleSelectRoom(roomKey)}
-        className={`w-full ${heightClass} px-3 py-2 text-left transition-all duration-200 flex flex-col justify-between border ${
+        className={`w-full ${heightClass} p-2.5 sm:p-3 text-left transition-all duration-200 flex flex-col justify-between border ${
           isSelected
             ? 'bg-[#121212] text-[#F7F5F0] border-[#121212] shadow-sm z-10'
             : isSameSize
@@ -309,7 +350,7 @@ export default function BookingPage() {
       >
         {/* Top Row: Room Code + Size Badge */}
         <div className="flex items-center justify-between gap-1 w-full">
-          <span className="font-display text-base leading-none">
+          <span className="font-display text-base sm:text-lg leading-none">
             {r.roomNumber}
           </span>
           <span
@@ -327,23 +368,22 @@ export default function BookingPage() {
           </span>
         </div>
 
-        {/* Middle Row: Tier Name */}
-        <div
-          className={`text-[11px] font-bold leading-tight truncate my-0.5 ${
-            isSelected ? 'text-[#F7F5F0]' : 'text-[#121212]'
-          }`}
-        >
-          {r.tierName}
-        </div>
-
-        {/* Bottom Row: Capacity & Price */}
-        <div className="flex items-center justify-between text-[10px] w-full pt-1 border-t border-current/10">
-          <span className={isSelected ? 'text-[#F7F5F0]/80' : 'text-[#68645E]'}>
+        {/* Bottom Stack: Capacity on one line, Price on next line (Prevents horizontal squeezing on phones!) */}
+        <div className="mt-2 space-y-0.5 w-full">
+          <div
+            className={`text-[11px] leading-snug ${
+              isSelected ? 'text-[#F7F5F0]/85' : 'text-[#68645E]'
+            }`}
+          >
             {r.capacityText}
-          </span>
-          <span className={`font-bold ${isSelected ? 'text-[#D9381E]' : 'text-[#121212]'}`}>
-            ฿{r.pricePerHour}
-          </span>
+          </div>
+          <div
+            className={`text-xs font-bold leading-snug ${
+              isSelected ? 'text-[#D9381E]' : 'text-[#121212]'
+            }`}
+          >
+            ฿{r.pricePerHour}/ชม.
+          </div>
         </div>
       </button>
     );
@@ -351,62 +391,62 @@ export default function BookingPage() {
 
   if (bookingResult?.success) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-16">
-        <div className="bg-[#EFECE6] hairline-all p-8 sm:p-12">
-          <div className="flex items-center justify-between hairline-b pb-6 mb-8">
+      <div className="max-w-2xl mx-auto px-5 py-12 sm:py-16">
+        <div className="bg-[#EFECE6] hairline-all p-6 sm:p-12">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 hairline-b pb-6 mb-8">
             <div>
               <span className="font-tech text-xs text-[#D9381E] block">
                 RESERVATION TICKET ISSUED
               </span>
-              <h2 className="font-display text-3xl sm:text-4xl text-[#121212] mt-1">
+              <h2 className="font-display text-2xl sm:text-4xl text-[#121212] mt-1">
                 ล็อกคิวห้อง {currentRoom.roomNumber} สำเร็จ!
               </h2>
             </div>
-            <div className="font-tech text-xs px-3 py-1.5 bg-[#121212] text-[#F7F5F0]">
+            <div className="font-tech text-xs px-3.5 py-1.5 bg-[#121212] text-[#F7F5F0] self-start sm:self-center">
               ห้อง {currentRoom.roomNumber} (ชั้น {currentRoom.floor})
             </div>
           </div>
 
           <div className="space-y-4 text-xs sm:text-sm hairline-b pb-8 mb-8">
-            <div className="flex justify-between py-2 hairline-b">
-              <span className="text-[#68645E]">รหัสเข้าห้อง (Booking Code)</span>
+            <div className="flex justify-between items-center py-2 hairline-b gap-2">
+              <span className="text-[#68645E]">รหัสเข้าห้อง</span>
               <span className="text-base font-bold text-[#D9381E]">
                 {bookingResult.bookingCode}
               </span>
             </div>
-            <div className="flex justify-between py-1.5">
+            <div className="flex justify-between items-center py-1.5 gap-2">
               <span className="text-[#68645E]">ห้องที่จอง</span>
-              <span className="text-[#121212] font-bold">
+              <span className="text-[#121212] font-bold text-right">
                 ห้อง {currentRoom.roomNumber} (ชั้น {currentRoom.floor}) — {currentRoom.tierName}
               </span>
             </div>
-            <div className="flex justify-between py-1.5">
-              <span className="text-[#68645E]">วันที่และรอบเวลา</span>
-              <span className="text-[#121212] font-semibold">
-                {bookingDate} · {startTime} — {endTime} น. ({totalHours} ชั่วโมง)
+            <div className="flex justify-between items-center py-1.5 gap-2">
+              <span className="text-[#68645E]">วันที่และเวลา</span>
+              <span className="text-[#121212] font-semibold text-right">
+                {bookingDate} · {startTime}–{endTime} น. ({totalHours} ชม.)
               </span>
             </div>
-            <div className="flex justify-between py-1.5">
+            <div className="flex justify-between items-center py-1.5 gap-2">
               <span className="text-[#68645E]">ผู้จอง</span>
-              <span className="text-[#121212] font-semibold">
+              <span className="text-[#121212] font-semibold text-right">
                 {customerName} ({customerPhone})
               </span>
             </div>
-            <div className="flex justify-between py-1.5">
+            <div className="flex justify-between items-center py-1.5 gap-2">
               <span className="text-[#68645E]">ยอดชำระรวม</span>
               <span className="text-[#121212] font-bold">{formatBaht(totalAmount)}</span>
             </div>
-            <div className="flex justify-between py-1.5">
-              <span className="text-[#68645E]">ชั่วโมงสะสมสมาชิกที่ได้รับ</span>
+            <div className="flex justify-between items-center py-1.5 gap-2">
+              <span className="text-[#68645E]">ชั่วโมงสะสมสมาชิก</span>
               <span className="text-[#D9381E] font-bold">+{totalHours} ชั่วโมง</span>
             </div>
           </div>
 
-          <p className="text-xs text-[#68645E] leading-relaxed mb-8">
+          <p className="text-xs text-[#68645E] leading-[1.8] mb-8">
             * กรุณาแคปหน้าจอตั๋วใบนี้ไว้เพื่อนำมาแสดงที่เคาน์เตอร์หน้าร้าน (สาขาร้อยเอ็ด 1 หน้าโรงเรียนร้อยเอ็ดวิทย์) ก่อนเวลาเข้าห้อง 5 นาทีครับ
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-col sm:flex-row gap-3.5">
             <Link
               href="/member"
               className="flex-1 py-4 bg-[#121212] text-[#F7F5F0] hover:bg-[#D9381E] text-xs font-bold text-center editorial-transition"
@@ -426,28 +466,28 @@ export default function BookingPage() {
   }
 
   return (
-    <div className="max-w-[1400px] mx-auto px-4 sm:px-8 py-12 sm:py-16">
+    <div className="max-w-[1400px] mx-auto px-5 sm:px-8 py-8 sm:py-16 pb-32 lg:pb-16">
       {/* Page Header */}
-      <div className="hairline-b pb-8 mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <div className="hairline-b pb-6 sm:pb-8 mb-6 sm:mb-8 flex flex-col md:flex-row md:items-end justify-between gap-3 sm:gap-4">
         <div>
           <p className="font-tech text-xs text-[#D9381E]">
             MOOD. KARAOKE ROOM — สาขาร้อยเอ็ด 1 (หน้าร้อยเอ็ดวิทย์)
           </p>
-          <h1 className="font-display text-4xl sm:text-5xl text-[#121212] mt-2 leading-tight">
+          <h1 className="font-display text-3xl sm:text-5xl text-[#121212] mt-2">
             จองคิวห้องออนไลน์
           </h1>
         </div>
-        <p className="text-xs sm:text-sm text-[#68645E] max-w-md">
+        <p className="text-xs sm:text-sm text-[#68645E] max-w-md leading-[1.75]">
           เลือกขนาดห้องและกดเลือกห้องที่ต้องการจากชั้น 1 หรือชั้น 2 ระบบจะล็อกคิวห้องให้ทันทีพร้อมคำนวณราคาหารเฉลี่ยต่อคน
         </p>
       </div>
 
       {/* Part 3.1 — แถบสถานะสมาชิกด้านบน */}
-      <div className="mb-12 p-4 sm:px-6 hairline-all bg-[#EFECE6]/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="mb-8 sm:mb-12 p-4 sm:px-6 hairline-all bg-[#EFECE6]/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         {activeMember ? (
           <>
-            <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm">
-              <span className="font-tech text-xs px-2.5 py-0.5 bg-[#121212] text-[#F7F5F0]">
+            <div className="flex flex-wrap items-center gap-2.5 text-xs sm:text-sm leading-[1.7]">
+              <span className="font-tech text-[11px] px-2.5 py-0.5 bg-[#121212] text-[#F7F5F0]">
                 MEMBER ACTIVE
               </span>
               <span className="text-[#121212] font-medium">
@@ -456,14 +496,14 @@ export default function BookingPage() {
             </div>
             <Link
               href="/member"
-              className="text-xs font-bold text-[#121212] link-editorial"
+              className="text-xs font-bold text-[#121212] link-editorial self-start sm:self-center"
             >
               ดูบัตรสะสม ({activeMember.totalHoursAccumulated % 10}/10 ชม.) →
             </Link>
           </>
         ) : (
           <>
-            <div className="text-xs sm:text-sm text-[#121212]">
+            <div className="text-xs sm:text-sm text-[#121212] leading-[1.7]">
               <span className="font-bold text-[#D9381E] mr-2">
                 [สิทธิ์สมาชิก MOOD]
               </span>
@@ -471,7 +511,7 @@ export default function BookingPage() {
             </div>
             <Link
               href="/member"
-              className="text-xs font-bold text-[#D9381E] link-editorial whitespace-nowrap"
+              className="text-xs font-bold text-[#D9381E] link-editorial whitespace-nowrap self-start sm:self-center"
             >
               ไปหน้าล็อกอิน / สมัครสมาชิก →
             </Link>
@@ -479,15 +519,15 @@ export default function BookingPage() {
         )}
       </div>
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12">
         {/* ฝั่งซ้าย: 4 ขั้นตอนการเลือกข้อมูล */}
-        <div className="lg:col-span-7 space-y-12">
+        <div className="lg:col-span-7 space-y-10 sm:space-y-12">
           {/* Part B.1 — 01 / เลือกขนาดห้อง + เลือกห้องจากชั้น 1 และ ชั้น 2 */}
           <div className="hairline-b pb-10 space-y-8">
             <div>
-              <div className="flex items-baseline justify-between mb-4">
-                <h2 className="text-lg font-bold text-[#121212]">
-                  <span className="font-tech text-xs text-[#D9381E] mr-2.5">01 /</span>
+              <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1.5 mb-4">
+                <h2 className="text-base sm:text-lg font-bold text-[#121212]">
+                  <span className="font-tech text-xs text-[#D9381E] mr-2">01 /</span>
                   เลือกขนาดห้อง (3 ขนาดห้อง)
                 </h2>
                 <span className="text-xs font-bold text-[#D9381E]">
@@ -511,7 +551,7 @@ export default function BookingPage() {
                       }`}
                     >
                       <div>
-                        <div className="flex justify-between items-center text-[11px] font-bold mb-2">
+                        <div className="flex justify-between items-center text-xs font-bold mb-2">
                           <span className={isSelected ? 'text-[#D9381E]' : 'text-[#68645E]'}>
                             {tier.code}
                           </span>
@@ -519,11 +559,11 @@ export default function BookingPage() {
                             {tier.capacityText}
                           </span>
                         </div>
-                        <div className="font-display text-xl sm:text-2xl leading-tight mb-1.5">
+                        <div className="font-display text-xl sm:text-2xl mb-1.5">
                           {tier.name}
                         </div>
                         <p
-                          className={`text-xs mb-3 leading-relaxed ${
+                          className={`text-xs mb-4 leading-[1.7] ${
                             isSelected ? 'text-[#F7F5F0]/80' : 'text-[#68645E]'
                           }`}
                         >
@@ -543,20 +583,20 @@ export default function BookingPage() {
               </div>
             </div>
 
-            {/* 2. เลือกห้องจาก ชั้น 1 และ ชั้น 2 (ใช้คำว่า ชั้น 1 และ ชั้น 2 สำหรับลูกค้า) */}
+            {/* 2. เลือกห้องจาก ชั้น 1 และ ชั้น 2 */}
             <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                 <div>
-                  <h3 className="text-sm font-bold text-[#121212]">
+                  <h3 className="text-sm sm:text-base font-bold text-[#121212]">
                     เลือกห้องที่ต้องการ (R1 – R11)
                   </h3>
-                  <p className="text-xs text-[#68645E]">
+                  <p className="text-xs text-[#68645E] mt-0.5 leading-[1.6]">
                     กดเลือกหมายเลขห้องจากชั้น 1 หรือ ชั้น 2 ได้โดยตรง
                   </p>
                 </div>
 
                 {/* Legend */}
-                <div className="flex items-center gap-3 text-[11px] font-bold">
+                <div className="flex flex-wrap items-center gap-4 text-xs font-bold">
                   <span className="flex items-center gap-1.5">
                     <span className="w-3 h-3 bg-[#121212] inline-block" />
                     ห้องที่เลือก ({currentRoom.roomNumber})
@@ -568,10 +608,51 @@ export default function BookingPage() {
                 </div>
               </div>
 
+              {/* Mobile-Only Floor Filter Tabs */}
+              <div className="grid grid-cols-3 md:hidden hairline-all bg-[#F7F5F0] text-xs font-bold">
+                <button
+                  type="button"
+                  onClick={() => setMobileFloorTab('ALL')}
+                  className={`py-3 hairline-r ${
+                    mobileFloorTab === 'ALL'
+                      ? 'bg-[#121212] text-[#F7F5F0]'
+                      : 'text-[#68645E]'
+                  }`}
+                >
+                  ดูทั้ง 2 ชั้น
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMobileFloorTab(1)}
+                  className={`py-3 hairline-r ${
+                    mobileFloorTab === 1
+                      ? 'bg-[#121212] text-[#F7F5F0]'
+                      : 'text-[#68645E]'
+                  }`}
+                >
+                  ชั้น 1 (R1–R4)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMobileFloorTab(2)}
+                  className={`py-3 ${
+                    mobileFloorTab === 2
+                      ? 'bg-[#121212] text-[#F7F5F0]'
+                      : 'text-[#68645E]'
+                  }`}
+                >
+                  ชั้น 2 (R5–R11)
+                </button>
+              </div>
+
               {/* Side-by-Side ชั้น 1 & ชั้น 2 */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
                 {/* ================= ชั้น 1 (ห้อง R1 – R4) ================= */}
-                <div className="hairline-all bg-[#EFECE6]/60 p-4 flex flex-col justify-between">
+                <div
+                  className={`hairline-all bg-[#EFECE6]/60 p-3.5 sm:p-4 flex-col justify-between ${
+                    mobileFloorTab === 2 ? 'hidden md:flex' : 'flex'
+                  }`}
+                >
                   <div>
                     <div className="flex items-center justify-between pb-3 mb-3 hairline-b">
                       <div>
@@ -583,17 +664,17 @@ export default function BookingPage() {
                         </h4>
                       </div>
                       <span className="text-[11px] font-bold px-2.5 py-1 bg-[#F7F5F0] hairline-all text-[#121212]">
-                        4 ห้องคาราโอเกะ
+                        4 ห้อง
                       </span>
                     </div>
 
-                    <div className="text-center text-[10px] font-bold text-[#68645E] mb-1.5">
+                    <div className="text-center text-[11px] font-bold text-[#68645E] mb-2">
                       ↑ โซนด้านในร้าน ↑
                     </div>
 
                     {/* ชั้น 1 Container */}
                     <div className="border-2 border-[#121212]/80 bg-[#E5E0D8] p-2.5 space-y-2">
-                      {/* Row 1 (Back of Floor 1): R4 Large (Left 7 cols) + ห้องน้ำหญิง (Right 5 cols) */}
+                      {/* Row 1: R4 Large + ห้องน้ำหญิง */}
                       <div className="grid grid-cols-12 gap-2 items-stretch">
                         <div className="col-span-7">
                           {renderRoomBox('R4', 'min-h-[96px]')}
@@ -603,19 +684,14 @@ export default function BookingPage() {
                         </div>
                       </div>
 
-                      {/* Row 2 (Middle Body of Floor 1):
-                          Left 5 cols = R3, R2, R1
-                          Center 2 cols = ทางเดิน
-                          Right 5 cols = โถงหน้าห้องน้ำ + บันไดขึ้นชั้น 2 + โซนพนักงาน */}
+                      {/* Row 2: R3, R2, R1 | ทางเดิน | บันไดขึ้นชั้น 2 */}
                       <div className="grid grid-cols-12 gap-2 items-stretch">
-                        {/* Left Wall: R3 -> R2 -> R1 */}
                         <div className="col-span-5 flex flex-col gap-2">
-                          {renderRoomBox('R3', 'min-h-[82px]')}
-                          {renderRoomBox('R2', 'min-h-[82px]')}
-                          {renderRoomBox('R1', 'min-h-[82px]')}
+                          {renderRoomBox('R3', 'min-h-[84px]')}
+                          {renderRoomBox('R2', 'min-h-[84px]')}
+                          {renderRoomBox('R1', 'min-h-[84px]')}
                         </div>
 
-                        {/* Center Corridor */}
                         <div className="col-span-2 bg-[#D6D1C7] border-x border-[#121212]/15 flex flex-col items-center justify-between py-3 px-1">
                           <span className="text-[9px] font-bold text-[#121212]/60">▲</span>
                           <span className="text-[11px] font-bold text-[#121212]/75 [writing-mode:vertical-rl] tracking-widest">
@@ -624,45 +700,48 @@ export default function BookingPage() {
                           <span className="text-[9px] font-bold text-[#121212]/60">▼</span>
                         </div>
 
-                        {/* Right Wall: โถงหน้าห้องน้ำ -> บันไดขึ้นชั้น 2 -> โซนพนักงาน */}
                         <div className="col-span-5 flex flex-col gap-2 text-center">
-                          <div className="min-h-[54px] bg-[#EFECE6]/70 border border-dashed border-[#121212]/20 p-1.5 flex items-center justify-center">
+                          <div className="min-h-[56px] bg-[#EFECE6]/70 border border-dashed border-[#121212]/20 p-2 flex items-center justify-center">
                             <span className="text-[11px] font-semibold text-[#121212]/70">โถงหน้าห้องน้ำ</span>
                           </div>
-                          <div className="min-h-[104px] bg-[#EFECE6]/90 border border-dashed border-[#121212]/30 p-2 flex items-center justify-center">
+                          <div className="min-h-[108px] bg-[#EFECE6]/90 border border-dashed border-[#121212]/30 p-2 flex items-center justify-center">
                             <span className="text-xs font-bold text-[#121212]/80">บันไดขึ้นชั้น 2</span>
                           </div>
-                          <div className="flex-1 bg-[#EFECE6]/70 border border-dashed border-[#121212]/20 p-1.5 flex items-center justify-center">
+                          <div className="flex-1 bg-[#EFECE6]/70 border border-dashed border-[#121212]/20 p-2 flex items-center justify-center">
                             <span className="text-[11px] font-semibold text-[#121212]/65">โซนพนักงาน</span>
                           </div>
                         </div>
                       </div>
 
-                      {/* Row 3 (Front of Shop — Floor 1): โซนของกิน (Left) + คาเฟ่ & เคาน์เตอร์หน้าร้าน (Right) */}
+                      {/* Row 3: โซนของกิน + คาเฟ่หน้าร้าน */}
                       <div className="grid grid-cols-12 gap-2 pt-0.5">
-                        <div className="col-span-4 min-h-[96px] bg-[#EFECE6]/80 border border-dashed border-[#121212]/25 p-2 flex flex-col items-center justify-center text-center">
+                        <div className="col-span-5 min-h-[88px] bg-[#EFECE6]/80 border border-dashed border-[#121212]/25 p-2 flex flex-col items-center justify-center text-center">
                           <span className="text-xs font-bold text-[#121212]/80">โซนของกิน</span>
                           <span className="text-[10px] text-[#68645E] mt-0.5">&amp; โต๊ะนั่ง</span>
                         </div>
-                        <div className="col-span-8 min-h-[96px] bg-[#EFECE6] border border-dashed border-[#121212]/30 p-2.5 flex flex-col items-center justify-center text-center">
+                        <div className="col-span-7 min-h-[88px] bg-[#EFECE6] border border-dashed border-[#121212]/30 p-2.5 flex flex-col items-center justify-center text-center">
                           <span className="text-xs font-bold text-[#121212]/85">
-                            คาเฟ่ &amp; เคาน์เตอร์หน้าร้าน
+                            คาเฟ่ &amp; เคาน์เตอร์
                           </span>
                           <span className="text-[10px] text-[#68645E] mt-0.5">
-                            (ประตูทางเข้าหลัก)
+                            (ทางเข้าหลัก)
                           </span>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="mt-2.5 text-center text-[11px] font-bold text-[#D9381E]">
+                  <div className="mt-3 text-center text-xs font-bold text-[#D9381E]">
                     ↓ ทางเข้าหน้าร้าน (ชั้น 1) ↓
                   </div>
                 </div>
 
                 {/* ================= ชั้น 2 (ห้อง R5 – R11) ================= */}
-                <div className="hairline-all bg-[#EFECE6]/60 p-4 flex flex-col justify-between">
+                <div
+                  className={`hairline-all bg-[#EFECE6]/60 p-3.5 sm:p-4 flex-col justify-between ${
+                    mobileFloorTab === 1 ? 'hidden md:flex' : 'flex'
+                  }`}
+                >
                   <div>
                     <div className="flex items-center justify-between pb-3 mb-3 hairline-b">
                       <div>
@@ -674,37 +753,32 @@ export default function BookingPage() {
                         </h4>
                       </div>
                       <span className="text-[11px] font-bold px-2.5 py-1 bg-[#F7F5F0] hairline-all text-[#121212]">
-                        7 ห้องคาราโอเกะ
+                        7 ห้อง
                       </span>
                     </div>
 
-                    <div className="text-center text-[10px] font-bold text-[#68645E] mb-1.5">
+                    <div className="text-center text-[11px] font-bold text-[#68645E] mb-2">
                       ↑ โซนระเบียงด้านหลัง ↑
                     </div>
 
                     {/* ชั้น 2 Container */}
                     <div className="border-2 border-[#121212]/80 bg-[#E5E0D8] p-2.5 space-y-2">
-                      {/* Row 1 (Back Balcony): ระเบียง */}
-                      <div className="py-2 px-3 bg-[#EFECE6]/75 border border-dashed border-[#121212]/25 text-center">
+                      {/* Row 1: ระเบียงชั้น 2 */}
+                      <div className="py-2.5 px-3 bg-[#EFECE6]/75 border border-dashed border-[#121212]/25 text-center">
                         <span className="text-xs font-bold text-[#121212]/75">
                           ระเบียงชั้น 2
                         </span>
                       </div>
 
-                      {/* Row 2 (Middle Body of Floor 2):
-                          Left 5 cols = R11, R10, R9, R8
-                          Center 2 cols = ทางเดิน
-                          Right 5 cols = ห้องน้ำชาย + โถงบันไดชั้น 2 + ห้อง R6 */}
+                      {/* Row 2: R11-R8 | ทางเดิน | ห้องน้ำชาย + บันได + R6 */}
                       <div className="grid grid-cols-12 gap-2 items-stretch">
-                        {/* Left Wall: R11 -> R10 -> R9 -> R8 */}
                         <div className="col-span-5 flex flex-col gap-2">
-                          {renderRoomBox('R11', 'min-h-[76px]')}
-                          {renderRoomBox('R10', 'min-h-[76px]')}
-                          {renderRoomBox('R9', 'min-h-[76px]')}
-                          {renderRoomBox('R8', 'min-h-[76px]')}
+                          {renderRoomBox('R11', 'min-h-[82px]')}
+                          {renderRoomBox('R10', 'min-h-[82px]')}
+                          {renderRoomBox('R9', 'min-h-[82px]')}
+                          {renderRoomBox('R8', 'min-h-[82px]')}
                         </div>
 
-                        {/* Center Corridor */}
                         <div className="col-span-2 bg-[#D6D1C7] border-x border-[#121212]/15 flex flex-col items-center justify-between py-3 px-1">
                           <span className="text-[9px] font-bold text-[#121212]/60">▲</span>
                           <span className="text-[11px] font-bold text-[#121212]/75 [writing-mode:vertical-rl] tracking-widest">
@@ -713,12 +787,11 @@ export default function BookingPage() {
                           <span className="text-[9px] font-bold text-[#121212]/60">▼</span>
                         </div>
 
-                        {/* Right Wall: ห้องน้ำชาย -> โถงบันไดชั้น 2 -> R6 */}
                         <div className="col-span-5 flex flex-col gap-2">
-                          <div className="min-h-[76px] bg-[#EFECE6]/75 border border-dashed border-[#121212]/25 p-2 flex items-center justify-center text-center">
+                          <div className="min-h-[82px] bg-[#EFECE6]/75 border border-dashed border-[#121212]/25 p-2 flex items-center justify-center text-center">
                             <span className="text-xs font-bold text-[#121212]/70">ห้องน้ำชาย</span>
                           </div>
-                          <div className="flex-1 min-h-[120px] bg-[#EFECE6]/85 border border-dashed border-[#121212]/30 p-2 flex items-center justify-center text-center">
+                          <div className="flex-1 min-h-[140px] bg-[#EFECE6]/85 border border-dashed border-[#121212]/30 p-2 flex items-center justify-center text-center">
                             <span className="text-xs font-bold text-[#121212]/80">บันไดชั้น 2</span>
                           </div>
                           <div>
@@ -727,9 +800,7 @@ export default function BookingPage() {
                         </div>
                       </div>
 
-                      {/* Row 3 (Front of Building — Floor 2):
-                          Left 7 cols = R7 (Size L)
-                          Right 5 cols = R5 (Size M) */}
+                      {/* Row 3: R7 (Size L) + R5 (Size M) */}
                       <div className="grid grid-cols-12 gap-2 pt-0.5 items-stretch">
                         <div className="col-span-7">
                           {renderRoomBox('R7', 'min-h-[96px]')}
@@ -741,26 +812,26 @@ export default function BookingPage() {
                     </div>
                   </div>
 
-                  <div className="mt-2.5 text-center text-[11px] font-bold text-[#D9381E]">
+                  <div className="mt-3 text-center text-xs font-bold text-[#D9381E]">
                     ↓ โซนด้านหน้าชั้น 2 (ห้อง R7 &amp; R5) ↓
                   </div>
                 </div>
               </div>
 
               {/* Selected Room Confirmation Banner */}
-              <div className="p-4 hairline-all bg-[#F7F5F0] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div className="flex flex-wrap items-center gap-3">
-                  <span className="px-3 py-1 bg-[#D9381E] text-[#F7F5F0] font-display text-sm">
-                    ห้อง {currentRoom.roomNumber} (ชั้น {currentRoom.floor})
-                  </span>
-                  <div className="text-xs sm:text-sm">
-                    <strong className="text-[#121212]">{currentRoom.tierName}</strong>
-                    <span className="text-[#68645E] ml-2">
-                      (รองรับ {currentRoom.capacityText} · {currentRoom.positionNote})
+              <div className="p-4 sm:p-5 hairline-all bg-[#F7F5F0] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                <div className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <span className="px-3 py-1 bg-[#D9381E] text-[#F7F5F0] font-display text-sm">
+                      ห้อง {currentRoom.roomNumber} (ชั้น {currentRoom.floor})
                     </span>
+                    <strong className="text-sm text-[#121212]">{currentRoom.tierName}</strong>
                   </div>
+                  <p className="text-xs text-[#68645E] leading-[1.6]">
+                    รองรับ {currentRoom.capacityText} · {currentRoom.positionNote}
+                  </p>
                 </div>
-                <span className="font-display text-base text-[#121212]">
+                <span className="font-display text-lg text-[#121212]">
                   {formatBaht(currentRoom.pricePerHour)} / ชม.
                 </span>
               </div>
@@ -770,8 +841,8 @@ export default function BookingPage() {
           {/* 02 วัน เวลา และปุ่มปรับจำนวนเพื่อนที่มาหารกัน */}
           <div className="hairline-b pb-10">
             <div className="flex items-baseline justify-between mb-6">
-              <h2 className="text-lg font-bold text-[#121212]">
-                <span className="font-tech text-xs text-[#D9381E] mr-2.5">02 /</span>
+              <h2 className="text-base sm:text-lg font-bold text-[#121212]">
+                <span className="font-tech text-xs text-[#D9381E] mr-2">02 /</span>
                 วัน เวลา และจำนวนเพื่อนที่มากัน
               </h2>
             </div>
@@ -786,7 +857,7 @@ export default function BookingPage() {
                   value={bookingDate}
                   min={new Date().toISOString().split('T')[0]}
                   onChange={(e) => setBookingDate(e.target.value)}
-                  className="w-full px-4 py-3 bg-[#F7F5F0] hairline-all text-sm font-semibold text-[#121212] focus:border-[#121212] focus:outline-none"
+                  className="w-full px-4 py-3.5 bg-[#F7F5F0] hairline-all text-base sm:text-sm font-semibold text-[#121212] focus:border-[#121212] focus:outline-none"
                   required
                 />
               </div>
@@ -795,28 +866,28 @@ export default function BookingPage() {
                 <label className="block text-xs font-bold text-[#68645E] mb-2">
                   จำนวนชั่วโมง (1–4 ชม.)
                 </label>
-                <div className="grid grid-cols-4 hairline-t hairline-l">
+                <div className="grid grid-cols-2 sm:grid-cols-4 hairline-t hairline-l">
                   {[1, 2, 3, 4].map((hrs) => (
                     <button
                       type="button"
                       key={hrs}
                       onClick={() => setTotalHours(hrs)}
-                      className={`py-3 text-xs font-bold hairline-r hairline-b editorial-transition ${
+                      className={`py-3.5 text-xs font-bold hairline-r hairline-b editorial-transition ${
                         totalHours === hrs
                           ? 'bg-[#121212] text-[#F7F5F0]'
                           : 'bg-[#F7F5F0] text-[#121212] hover:bg-[#EFECE6]'
                       }`}
                     >
-                      {hrs} ชม.
+                      {hrs} ชั่วโมง
                     </button>
                   ))}
                 </div>
               </div>
             </div>
 
-            {/* Start Time Grid (13:00 - 22:00) */}
+            {/* Start Time Grid — 3 cols on mobile so buttons are wide and never cramped */}
             <div className="mb-8">
-              <div className="flex justify-between items-center mb-2">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 mb-2.5">
                 <label className="text-xs font-bold text-[#68645E]">
                   เวลาเริ่ม (ร้องถึงเวลา {endTime} น.)
                 </label>
@@ -824,19 +895,19 @@ export default function BookingPage() {
                   เลือกเวลาเริ่ม 13:00 — 22:00 น.
                 </span>
               </div>
-              <div className="grid grid-cols-5 sm:grid-cols-10 hairline-t hairline-l">
+              <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-10 hairline-t hairline-l">
                 {TIME_SLOTS.map((slot) => (
                   <button
                     type="button"
                     key={slot}
                     onClick={() => setStartTime(slot)}
-                    className={`py-3 text-xs font-bold hairline-r hairline-b editorial-transition ${
+                    className={`py-3.5 text-xs sm:text-xs font-bold hairline-r hairline-b editorial-transition ${
                       startTime === slot
                         ? 'bg-[#D9381E] text-[#F7F5F0]'
                         : 'bg-[#F7F5F0] text-[#121212] hover:bg-[#EFECE6]'
                     }`}
                   >
-                    {slot}
+                    {slot} น.
                   </button>
                 ))}
               </div>
@@ -844,12 +915,12 @@ export default function BookingPage() {
 
             {/* ปุ่ม [-] [+] ปรับจำนวนเพื่อนที่มากัน */}
             <div className="hairline-all bg-[#EFECE6]/50 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
+              <div className="space-y-1">
                 <span className="text-sm font-bold text-[#121212] block">
                   คำนวณหารค่าห้องตามจำนวนเพื่อนที่มากัน
                 </span>
-                <span className="text-xs text-[#68645E]">
-                  กดปุ่ม [-] หรือ [+] เพื่อดูราคาหารเฉลี่ยต่อคนในตั๋วสรุปยอดด้านขวา
+                <span className="text-xs text-[#68645E] block leading-[1.6]">
+                  กดปุ่ม [-] หรือ [+] เพื่อดูราคาหารเฉลี่ยต่อคน
                 </span>
               </div>
 
@@ -857,17 +928,17 @@ export default function BookingPage() {
                 <button
                   type="button"
                   onClick={() => setSplitCount(Math.max(1, splitCount - 1))}
-                  className="px-4 py-2 font-bold text-base hover:bg-[#EFECE6]"
+                  className="px-4 py-2.5 font-bold text-base hover:bg-[#EFECE6]"
                 >
                   -
                 </button>
-                <span className="px-5 py-2 text-xs font-bold">
+                <span className="px-5 py-2.5 text-xs font-bold">
                   มากัน {splitCount} คน
                 </span>
                 <button
                   type="button"
                   onClick={() => setSplitCount(splitCount + 1)}
-                  className="px-4 py-2 font-bold text-base hover:bg-[#EFECE6]"
+                  className="px-4 py-2.5 font-bold text-base hover:bg-[#EFECE6]"
                 >
                   +
                 </button>
@@ -877,9 +948,9 @@ export default function BookingPage() {
 
           {/* 03 เมนูน้ำและขนมเสริม (ไม่บังคับ) */}
           <div className="hairline-b pb-10">
-            <div className="flex items-baseline justify-between mb-4">
-              <h2 className="text-lg font-bold text-[#121212]">
-                <span className="font-tech text-xs text-[#D9381E] mr-2.5">03 /</span>
+            <div className="flex flex-wrap items-baseline justify-between gap-2 mb-4">
+              <h2 className="text-base sm:text-lg font-bold text-[#121212]">
+                <span className="font-tech text-xs text-[#D9381E] mr-2">03 /</span>
                 เมนูน้ำและขนมเสริม (ไม่บังคับ)
               </h2>
               <span className="text-xs font-semibold text-[#D9381E]">
@@ -887,31 +958,31 @@ export default function BookingPage() {
               </span>
             </div>
 
-            <div className="p-6 hairline-all bg-[#EFECE6]/40 space-y-2">
-              <div className="text-sm font-bold text-[#121212]">
+            <div className="p-5 sm:p-6 hairline-all bg-[#EFECE6]/40 space-y-2.5">
+              <div className="text-sm font-bold text-[#121212] leading-[1.5]">
                 ☕ เมนูคาเฟ่และเครื่องดื่มภายในร้าน (เตรียมเปิดให้เลือกสั่งล่วงหน้าเร็วๆ นี้)
               </div>
-              <p className="text-xs text-[#68645E] leading-relaxed">
-                ส่วนนี้ใช้สำหรับเลือกสั่งเมนูเครื่องดื่มคาเฟ่ น้ำอัดลม และขนมทานเล่นล่วงหน้า เพื่อให้พนักงานจัดเตรียมเสิร์ฟไว้รอก่อนถึงเวลานัดของคุณ (สามารถสั่งเพิ่มเติมที่เคาน์เตอร์หน้าร้านได้โดยไม่มีขั้นต่ำ)
+              <p className="text-xs text-[#68645E] leading-[1.8]">
+                ส่วนนี้ใช้สำหรับเลือกสั่งเมนูเครื่องดื่มคาเฟ่ น้ำอัดลม และขนมทานเล่นล่วงหน้า เพื่อให้พนักงานจัดเตรียมเสิร์ฟไว้รอก่อนถึงเวลานัดของคุณ
               </p>
             </div>
           </div>
 
           {/* 04 ข้อมูลผู้จอง: ชื่อเล่น และ เบอร์โทรศัพท์ */}
           <div>
-            <div className="flex items-baseline justify-between mb-6">
-              <h2 className="text-lg font-bold text-[#121212]">
-                <span className="font-tech text-xs text-[#D9381E] mr-2.5">04 /</span>
+            <div className="flex flex-wrap items-baseline justify-between gap-2 mb-6">
+              <h2 className="text-base sm:text-lg font-bold text-[#121212]">
+                <span className="font-tech text-xs text-[#D9381E] mr-2">04 /</span>
                 ข้อมูลผู้จอง
               </h2>
               {activeMember && (
                 <span className="text-xs font-bold text-[#D9381E]">
-                  ✓ ดึงข้อมูลจากบัญชีสมาชิกอัตโนมัติ
+                  ✓ ดึงข้อมูลสมาชิกอัตโนมัติ
                 </span>
               )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
               <div>
                 <label className="block text-xs font-bold text-[#68645E] mb-2">
                   ชื่อเล่น *
@@ -921,7 +992,7 @@ export default function BookingPage() {
                   placeholder="เช่น มิ้นท์ (แก๊ง ม.6/2)"
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  className="w-full px-4 py-3 bg-[#F7F5F0] hairline-all text-sm text-[#121212] focus:border-[#121212] focus:outline-none"
+                  className="w-full px-4 py-3.5 bg-[#F7F5F0] hairline-all text-base sm:text-sm text-[#121212] focus:border-[#121212] focus:outline-none"
                   required
                 />
               </div>
@@ -934,7 +1005,7 @@ export default function BookingPage() {
                   placeholder="เช่น 0812345678"
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
-                  className="w-full px-4 py-3 bg-[#F7F5F0] hairline-all text-sm font-semibold text-[#121212] focus:border-[#121212] focus:outline-none"
+                  className="w-full px-4 py-3.5 bg-[#F7F5F0] hairline-all text-base sm:text-sm font-semibold text-[#121212] focus:border-[#121212] focus:outline-none"
                   required
                 />
               </div>
@@ -943,43 +1014,43 @@ export default function BookingPage() {
         </div>
 
         {/* Part B.5 — ตั๋วสรุปยอดฝั่งขวา (Reservation Summary Ticket) */}
-        <div className="lg:col-span-5">
-          <div className="lg:sticky lg:top-24 bg-[#EFECE6] hairline-all p-6 sm:p-8">
-            <div className="flex items-center justify-between hairline-b pb-4 mb-6">
+        <div id="ticket-summary" className="lg:col-span-5">
+          <div className="lg:sticky lg:top-24 bg-[#EFECE6] hairline-all p-5 sm:p-8">
+            <div className="flex items-center justify-between gap-2 hairline-b pb-4 mb-6">
               <div>
                 <span className="font-tech text-[10px] uppercase tracking-widest text-[#68645E] block">
                   MOOD. KARAOKE TICKET
                 </span>
-                <h3 className="font-display text-2xl sm:text-3xl text-[#121212] leading-tight mt-1">
+                <h3 className="font-display text-2xl sm:text-3xl text-[#121212] mt-1">
                   Reservation Summary
                 </h3>
               </div>
-              <span className="font-display text-sm px-3 py-1 bg-[#121212] text-[#F7F5F0]">
+              <span className="font-display text-xs sm:text-sm px-3 py-1.5 bg-[#121212] text-[#F7F5F0] whitespace-nowrap">
                 ห้อง {currentRoom.roomNumber} (ชั้น {currentRoom.floor})
               </span>
             </div>
 
             {/* Line Items */}
-            <div className="space-y-3 text-xs sm:text-sm hairline-b pb-6 mb-6">
-              <div className="flex justify-between">
+            <div className="space-y-3.5 text-xs sm:text-sm hairline-b pb-6 mb-6">
+              <div className="flex justify-between gap-2">
                 <span className="text-[#68645E]">ห้องที่เลือก</span>
-                <span className="text-[#D9381E] font-bold">
+                <span className="text-[#D9381E] font-bold text-right">
                   ห้อง {currentRoom.roomNumber} · ชั้น {currentRoom.floor}
                 </span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between gap-2">
                 <span className="text-[#68645E]">ขนาดห้อง</span>
-                <span className="text-[#121212] font-bold">
+                <span className="text-[#121212] font-bold text-right">
                   {currentRoom.tierName} ({currentRoom.capacityText})
                 </span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between gap-2">
                 <span className="text-[#68645E]">วันที่และเวลา</span>
-                <span className="text-[#121212] font-semibold">
+                <span className="text-[#121212] font-semibold text-right">
                   {bookingDate} · {startTime}–{endTime} น. ({totalHours} ชม.)
                 </span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between gap-2">
                 <span className="text-[#68645E]">ค่าห้อง ({totalHours} ชั่วโมง)</span>
                 <span className="text-[#121212] font-semibold">{formatBaht(rawRoomCharge)}</span>
               </div>
@@ -992,12 +1063,12 @@ export default function BookingPage() {
                     placeholder="โค้ดส่วนลด (หากมี)"
                     value={promoCode}
                     onChange={(e) => setPromoCode(e.target.value)}
-                    className="flex-1 px-3 py-2 bg-[#F7F5F0] hairline-all text-xs text-[#121212] focus:outline-none"
+                    className="flex-1 px-3.5 py-2.5 bg-[#F7F5F0] hairline-all text-xs text-[#121212] focus:outline-none"
                   />
                   <button
                     type="button"
                     onClick={handleApplyPromo}
-                    className="px-3.5 py-2 hairline-all bg-[#F7F5F0] hover:bg-[#121212] hover:text-[#F7F5F0] text-xs font-bold editorial-transition"
+                    className="px-4 py-2.5 hairline-all bg-[#F7F5F0] hover:bg-[#121212] hover:text-[#F7F5F0] text-xs font-bold editorial-transition"
                   >
                     ใช้โค้ด
                   </button>
@@ -1021,7 +1092,7 @@ export default function BookingPage() {
               </div>
 
               {/* กล่อง Student Bill Splitter */}
-              <div className="p-4 bg-[#F7F5F0] hairline-all flex items-center justify-between">
+              <div className="p-4 bg-[#F7F5F0] hairline-all flex items-center justify-between gap-2">
                 <div>
                   <span className="font-tech text-[10px] uppercase tracking-wider text-[#68645E] block">
                     STUDENT BILL SPLITTER
@@ -1030,7 +1101,7 @@ export default function BookingPage() {
                     หาร {splitCount} คน = เฉลี่ยตกคนละ
                   </span>
                 </div>
-                <span className="font-display text-2xl sm:text-3xl text-[#D9381E]">
+                <span className="font-display text-2xl sm:text-3xl text-[#D9381E] whitespace-nowrap">
                   ~{formatBaht(perPersonShare)}
                 </span>
               </div>
@@ -1038,7 +1109,7 @@ export default function BookingPage() {
 
             {/* QR Code PromptPay และปุ่มกดยืนยันล็อกห้อง */}
             <div className="space-y-4">
-              <div className="flex items-center justify-between gap-4 bg-[#F7F5F0] p-4 hairline-all">
+              <div className="flex items-center gap-4 bg-[#F7F5F0] p-4 hairline-all">
                 <div className="w-20 h-20 bg-white p-1.5 hairline-all flex-shrink-0">
                   <img
                     src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=MOOD-KARAOKE-PROMPTPAY"
@@ -1050,7 +1121,7 @@ export default function BookingPage() {
                   <span className="font-tech text-[10px] uppercase tracking-wider text-[#D9381E] block">
                     QR CODE PROMPTPAY
                   </span>
-                  <p className="text-xs font-bold text-[#121212]">
+                  <p className="text-xs font-bold text-[#121212] leading-[1.5]">
                     สแกนชำระค่าเข้าบริการ {formatBaht(totalAmount)}
                   </p>
                   <p className="text-[11px] text-[#68645E]">
@@ -1072,6 +1143,30 @@ export default function BookingPage() {
           </div>
         </div>
       </form>
+
+      {/* Mobile Floating Bottom Summary Bar */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#F7F5F0]/95 backdrop-blur-md hairline-t px-4 py-3 flex items-center justify-between gap-3 shadow-lg">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 bg-[#121212] text-[#F7F5F0] text-[11px] font-bold whitespace-nowrap">
+              ห้อง {currentRoom.roomNumber} (ชั้น {currentRoom.floor})
+            </span>
+            <span className="text-xs font-bold text-[#121212] truncate">
+              {formatBaht(totalAmount)} ({totalHours} ชม.)
+            </span>
+          </div>
+          <span className="text-[11px] font-bold text-[#D9381E] block mt-0.5 truncate">
+            หาร {splitCount} คน = ตกคนละ ~{formatBaht(perPersonShare)}
+          </span>
+        </div>
+
+        <a
+          href="#ticket-summary"
+          className="px-4 py-2.5 bg-[#D9381E] text-[#F7F5F0] text-xs font-bold whitespace-nowrap flex-shrink-0"
+        >
+          ไปยืนยันจอง ↓
+        </a>
+      </div>
     </div>
   );
 }

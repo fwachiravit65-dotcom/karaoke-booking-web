@@ -1,74 +1,46 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { formatBaht, getStatusBadge } from '@/lib/utils';
 import { Booking, BookingStatus } from '@/types';
-import { StaffAccount, verifyStaffPin } from '@/lib/member-store';
-
-const INITIAL_ADMIN_BOOKINGS: Booking[] = [
-  {
-    id: 'b-101',
-    bookingCode: 'MD-20261122-8F29',
-    roomId: 'room-2',
-    customerName: 'มิ้นท์ (แก๊ง ม.6/2)',
-    customerPhone: '0812345678',
-    customerEmail: 'mint@student.ac.th',
-    bookingDate: '2026-11-22',
-    startTime: '16:00',
-    endTime: '18:00',
-    totalHours: 2,
-    roomCharge: 400,
-    packageCharge: 0,
-    totalAmount: 400,
-    depositAmount: 400,
-    status: 'PENDING',
-    slipImageUrl: 'https://images.unsplash.com/photo-1554415707-9e4466bfe0dc?w=400',
-    createdAt: '2026-11-22T10:00:00Z',
-  },
-  {
-    id: 'b-102',
-    bookingCode: 'MD-20261122-3112',
-    roomId: 'room-3',
-    customerName: 'เจเจ (ชมรมดนตรี ร.ว.)',
-    customerPhone: '0899887766',
-    bookingDate: '2026-11-22',
-    startTime: '18:00',
-    endTime: '21:00',
-    totalHours: 3,
-    roomCharge: 840,
-    packageCharge: 0,
-    totalAmount: 840,
-    depositAmount: 840,
-    status: 'CONFIRMED',
-    slipImageUrl: 'https://images.unsplash.com/photo-1554415707-9e4466bfe0dc?w=400',
-    createdAt: '2026-11-22T08:15:00Z',
-  },
-  {
-    id: 'b-103',
-    bookingCode: 'MD-20261122-9481',
-    roomId: 'room-1',
-    customerName: 'ปอนด์ & พลอย',
-    customerPhone: '0823334444',
-    bookingDate: '2026-11-22',
-    startTime: '15:00',
-    endTime: '17:00',
-    totalHours: 2,
-    roomCharge: 280,
-    packageCharge: 0,
-    totalAmount: 280,
-    depositAmount: 280,
-    status: 'COMPLETED',
-    createdAt: '2026-11-22T06:00:00Z',
-  },
-];
+import {
+  StaffAccount,
+  verifyStaffPin,
+  getCurrentMember,
+  getAllBookings,
+  updateBookingStatusInStore,
+} from '@/lib/member-store';
 
 export default function AdminPage() {
   const [activeStaff, setActiveStaff] = useState<StaffAccount | null>(null);
+  const [staffPhone, setStaffPhone] = useState('');
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState('');
 
-  const [bookings, setBookings] = useState<Booking[]>(INITIAL_ADMIN_BOOKINGS);
+  const [bookings, setBookings] = useState<Booking[]>([]);
   const [filter, setFilter] = useState<'ALL' | BookingStatus>('ALL');
+
+  useEffect(() => {
+    setBookings(getAllBookings());
+    const currentMember = getCurrentMember();
+    if (currentMember && currentMember.role === 'STAFF') {
+      setStaffPhone(currentMember.phone);
+      // Automatically unlock if logged in as a promoted STAFF account
+      setActiveStaff({
+        staffId: 'STF-ACTIVE',
+        phone: currentMember.phone,
+        name: currentMember.name,
+        pinCode: currentMember.pin,
+        branch: 'สาขาร้อยเอ็ด 1',
+        role: currentMember.staffTitle || 'พนักงานร้าน (Promoted Staff)',
+        isPromotedMember: true,
+      });
+    }
+
+    const syncBookings = () => setBookings(getAllBookings());
+    window.addEventListener('mood-bookings-change', syncBookings);
+    return () => window.removeEventListener('mood-bookings-change', syncBookings);
+  }, []);
 
   const handleStaffDigit = (digit: string) => {
     setPinError('');
@@ -77,12 +49,14 @@ export default function AdminPage() {
       setPinInput(next);
       if (next.length === 6) {
         setTimeout(() => {
-          const staff = verifyStaffPin(next);
+          const staff = verifyStaffPin(next, staffPhone);
           if (staff) {
             setActiveStaff(staff);
             setPinInput('');
           } else {
-            setPinError('รหัส PIN พนักงานไม่ถูกต้อง (รหัสทดสอบคือ 888888)');
+            setPinError(
+              'รหัส PIN ไม่ถูกต้อง หรือเบอร์โทรนี้ยังไม่ได้รับการโปรโมทเป็นพนักงานในหน้า DEV'
+            );
             setPinInput('');
           }
         }, 120);
@@ -91,14 +65,13 @@ export default function AdminPage() {
   };
 
   const updateStatus = (id: string, newStatus: BookingStatus) => {
-    setBookings((prev) =>
-      prev.map((b) => (b.id === id ? { ...b, status: newStatus } : b))
-    );
+    const updated = updateBookingStatusInStore(id, newStatus);
+    setBookings(updated);
   };
 
   if (!activeStaff) {
     return (
-      <div className="max-w-md mx-auto px-4 py-16 sm:py-24">
+      <div className="max-w-md mx-auto px-5 py-16 sm:py-24">
         <div className="hairline-all bg-[#F7F5F0] p-8 sm:p-10 text-center">
           <span className="font-tech text-[11px] uppercase tracking-widest text-[#D9381E] block">
             STAFF ONLY — พนักงานหน้าร้าน
@@ -106,12 +79,26 @@ export default function AdminPage() {
           <h1 className="font-display text-3xl sm:text-4xl text-[#121212] mt-1">
             Staff Counter Lock
           </h1>
-          <p className="text-xs text-[#68645E] mt-2 mb-6">
-            กรุณากดรหัส PIN 6 หลักสำหรับพนักงานหน้าร้านเพื่อเข้าจัดการคิวห้อง
+          <p className="text-xs text-[#68645E] mt-2 mb-6 leading-relaxed">
+            ใช้เบอร์โทรและรหัส PIN 6 หลักของบัญชีที่ได้รับการโปรโมทเป็นพนักงานจากหน้า DEV เพื่อเข้าจัดการคิวห้อง
           </p>
 
+          <div className="mb-4 text-left">
+            <label className="block text-[11px] font-bold text-[#68645E] mb-1">
+              เบอร์โทรพนักงาน (หรือเว้นว่างหากใช้รหัสกลาง)
+            </label>
+            <input
+              type="tel"
+              maxLength={10}
+              placeholder="09XXXXXXXX"
+              value={staffPhone}
+              onChange={(e) => setStaffPhone(e.target.value.replace(/[^0-9]/g, ''))}
+              className="w-full px-3.5 py-2.5 bg-[#F7F5F0] hairline-all text-sm font-bold text-center text-[#121212] focus:outline-none"
+            />
+          </div>
+
           {/* 6 PIN Dots */}
-          <div className="flex items-center justify-center gap-4 py-4 mb-4">
+          <div className="flex items-center justify-center gap-4 py-3 mb-3">
             {Array.from({ length: 6 }).map((_, idx) => {
               const filled = idx < pinInput.length;
               return (
@@ -128,13 +115,13 @@ export default function AdminPage() {
           </div>
 
           {pinError && (
-            <div className="mb-4 p-2.5 hairline-all bg-[#D9381E]/10 text-[#D9381E] text-xs font-medium">
+            <div className="mb-4 p-2.5 hairline-all bg-[#D9381E]/10 text-[#D9381E] text-xs font-medium leading-relaxed">
               {pinError}
             </div>
           )}
 
           {/* Keypad */}
-          <div className="grid grid-cols-3 hairline-t hairline-l select-none mb-6">
+          <div className="grid grid-cols-3 hairline-t hairline-l select-none">
             {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => (
               <button
                 type="button"
@@ -167,14 +154,6 @@ export default function AdminPage() {
               ⌫
             </button>
           </div>
-
-          <button
-            type="button"
-            onClick={() => setActiveStaff(verifyStaffPin('888888'))}
-            className="text-xs font-semibold text-[#68645E] hover:text-[#121212] underline"
-          >
-            [โหมดทดสอบ: รหัสพนักงานคือ 888888 หรือคลิกที่นี่เพื่อเข้าทันที]
-          </button>
         </div>
       </div>
     );
@@ -184,23 +163,24 @@ export default function AdminPage() {
 
   const pendingCount = bookings.filter((b) => b.status === 'PENDING').length;
   const confirmedCount = bookings.filter((b) => b.status === 'CONFIRMED').length;
+  const rejectedCount = bookings.filter((b) => b.status === 'REJECTED').length;
   const totalRevenue = bookings
     .filter((b) => b.status === 'CONFIRMED' || b.status === 'COMPLETED')
     .reduce((sum, b) => sum + b.totalAmount, 0);
 
   return (
-    <div className="max-w-[1400px] mx-auto px-4 sm:px-8 py-12 sm:py-16">
+    <div className="max-w-[1400px] mx-auto px-5 sm:px-8 py-12 sm:py-16">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-8 hairline-b mb-10">
         <div>
           <p className="font-tech text-xs text-[#D9381E]">
-            STAFF COUNTER — {activeStaff.staffId} : {activeStaff.name}
+            STAFF COUNTER — พนักงาน: {activeStaff.name} ({activeStaff.phone})
           </p>
-          <h1 className="font-display text-4xl sm:text-5xl text-[#121212] mt-2 leading-tight">
+          <h1 className="font-display text-3xl sm:text-5xl text-[#121212] mt-2">
             จัดการคิวห้องหน้าร้าน
           </h1>
         </div>
-        <div className="flex items-center gap-3 self-start sm:self-end">
+        <div className="flex flex-wrap items-center gap-3 self-start sm:self-end">
           <div className="text-xs font-bold px-3.5 py-2 hairline-all bg-[#EFECE6] text-[#121212] flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-[#D9381E]" />
             <span>สาขา : ร้อยเอ็ด 1</span>
@@ -216,8 +196,8 @@ export default function AdminPage() {
       </div>
 
       {/* Metric Strip */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 hairline-all mb-10 bg-[#EFECE6]/50">
-        <div className="p-6 sm:p-8 hairline-b sm:border-b-0 sm:hairline-r">
+      <div className="grid grid-cols-1 sm:grid-cols-4 hairline-all mb-10 bg-[#EFECE6]/50">
+        <div className="p-6 hairline-b sm:border-b-0 sm:hairline-r">
           <span className="text-xs font-bold text-[#68645E] block mb-2">
             01 / ยอดรอตรวจสลิป
           </span>
@@ -226,18 +206,27 @@ export default function AdminPage() {
           </div>
         </div>
 
-        <div className="p-6 sm:p-8 hairline-b sm:border-b-0 sm:hairline-r">
+        <div className="p-6 hairline-b sm:border-b-0 sm:hairline-r">
           <span className="text-xs font-bold text-[#68645E] block mb-2">
-            02 / จำนวนห้องที่ยืนยันแล้ว
+            02 / ห้องที่ยืนยันแล้ว
           </span>
           <div className="font-display text-4xl text-[#121212]">
             {confirmedCount} <span className="text-sm font-normal text-[#68645E]">ห้อง</span>
           </div>
         </div>
 
-        <div className="p-6 sm:p-8">
+        <div className="p-6 hairline-b sm:border-b-0 sm:hairline-r">
           <span className="text-xs font-bold text-[#68645E] block mb-2">
-            03 / ยอดขายรวม
+            03 / ยอดปฏิเสธการจอง
+          </span>
+          <div className="font-display text-4xl text-[#68645E]">
+            {rejectedCount} <span className="text-sm font-normal text-[#68645E]">รายการ</span>
+          </div>
+        </div>
+
+        <div className="p-6">
+          <span className="text-xs font-bold text-[#68645E] block mb-2">
+            04 / ยอดขายรวม
           </span>
           <div className="font-display text-4xl text-[#121212]">
             {formatBaht(totalRevenue)}
@@ -251,17 +240,17 @@ export default function AdminPage() {
           <button
             key={tab}
             onClick={() => setFilter(tab)}
-            className={`px-5 py-2.5 editorial-transition ${
+            className={`px-5 py-2.5 whitespace-nowrap editorial-transition ${
               filter === tab
                 ? 'bg-[#121212] text-[#F7F5F0]'
                 : 'hairline-all bg-[#F7F5F0] text-[#68645E] hover:text-[#121212]'
             }`}
           >
-            {tab === 'ALL' && 'ทั้งหมด'}
+            {tab === 'ALL' && `ทั้งหมด (${bookings.length})`}
             {tab === 'PENDING' && `รอตรวจสลิป (${pendingCount})`}
-            {tab === 'CONFIRMED' && 'ยืนยันแล้ว'}
-            {tab === 'COMPLETED' && 'เสร็จสิ้น'}
-            {tab === 'REJECTED' && 'ปฏิเสธ'}
+            {tab === 'CONFIRMED' && `ยืนยันแล้ว (${confirmedCount})`}
+            {tab === 'COMPLETED' && 'เข้าใช้บริการแล้ว'}
+            {tab === 'REJECTED' && `ปฏิเสธ (${rejectedCount})`}
           </button>
         ))}
       </div>
@@ -270,12 +259,6 @@ export default function AdminPage() {
       <div className="hairline-t">
         {filtered.map((item) => {
           const badge = getStatusBadge(item.status);
-          const roomLabel =
-            item.roomId === 'room-3'
-              ? 'ST-201 · Reunion(L)'
-              : item.roomId === 'room-2'
-              ? 'ST-102 · Get-together(M)'
-              : 'ST-101 · Catch-Up(S)';
 
           return (
             <div
@@ -289,7 +272,7 @@ export default function AdminPage() {
                     {item.bookingCode}
                   </span>
                   <span className="text-xs font-bold px-2.5 py-0.5 bg-[#EFECE6] hairline-all">
-                    {roomLabel}
+                    ห้อง {item.roomId}
                   </span>
                   <span className={`text-xs font-bold px-2.5 py-0.5 border ${badge.color}`}>
                     {badge.label}

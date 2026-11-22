@@ -125,7 +125,6 @@ export default function HomePage() {
 
   const activeStudio = STUDIOS[activeStudioIndex];
 
-  // Auto-slide Hero right images every 3.5 seconds
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES.length);
@@ -137,7 +136,7 @@ export default function HomePage() {
     <div className="bg-[#F7F5F0] text-[#121212]">
       {/* Part 2.1 — แถบข่าวสารบนสุด (Top Ticker) */}
       <div className="hairline-b bg-[#EFECE6]/70">
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-8 py-2.5 flex flex-wrap items-center justify-between gap-4 font-tech text-xs text-[#121212]">
+        <div className="max-w-[1400px] mx-auto px-5 sm:px-8 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-4 font-tech text-xs text-[#121212]">
           <span>สาขา : ร้อยเอ็ด 1 (หน้าโรงเรียนร้อยเอ็ดวิทย์)</span>
           <span className="text-[#D9381E] font-bold">
             RATE: เริ่มต้นชั่วโมงละ ฿140 / ชั่วโมง
@@ -145,63 +144,63 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Part 2.2 — พาร์ทต้อนรับ (Hero Section - แบ่งซ้าย 7 ส่วน / ขวา 5 ส่วน) */}
-      <section className="max-w-[1400px] mx-auto px-4 sm:px-8 hairline-b">
+      {/* Part 2.2 — พาร์ทต้อนรับ (Hero Section) */}
+      <section className="max-w-[1400px] mx-auto px-5 sm:px-8 hairline-b">
         <div className="grid grid-cols-1 lg:grid-cols-12">
-          {/* Left Column (7/12): Headline, Description, Booking Button, Acoustic Specs */}
-          <div className="lg:col-span-7 py-12 sm:py-20 lg:pr-12 lg:hairline-r flex flex-col justify-between">
+          {/* Left Column (7/12) */}
+          <div className="lg:col-span-7 py-10 sm:py-20 lg:pr-12 lg:hairline-r flex flex-col justify-between">
             <div>
-              <div className="inline-flex items-center gap-3 mb-6">
-                <span className="font-tech text-xs px-3 py-1 rounded-full bg-[#121212] text-[#F7F5F0]">
+              <div className="inline-flex flex-wrap items-center gap-2.5 mb-6">
+                <span className="font-tech text-[11px] px-3 py-1 rounded-full bg-[#121212] text-[#F7F5F0]">
                   MOOD. KARAOKE ROOM
                 </span>
-                <span className="font-tech text-xs text-[#68645E]">
+                <span className="font-tech text-[11px] text-[#68645E]">
                   ROI ET BRANCH 01
                 </span>
               </div>
 
-              <h1 className="font-display text-4xl sm:text-6xl xl:text-[64px] leading-[1.08] text-[#121212] tracking-tight">
+              <h1 className="font-display text-3xl sm:text-6xl xl:text-[62px] leading-[1.2] text-[#121212]">
                 Quiet rooms <br />
                 <span className="text-[#D9381E]">for loud friends.</span>
               </h1>
 
-              <h2 className="mt-5 text-xl sm:text-2xl font-bold text-[#121212] leading-snug">
+              <h2 className="mt-5 text-lg sm:text-2xl font-bold text-[#121212] leading-[1.55]">
                 พื้นที่ปล่อยจอยหลังเลิกเรียน ในห้องเก็บเสียงที่พร้อมให้คุณระบายมันออกมาให้มากที่สุด
               </h2>
 
-              <p className="mt-4 text-sm sm:text-base text-[#68645E] max-w-xl leading-relaxed">
+              <p className="mt-4 text-sm sm:text-base text-[#68645E] max-w-xl leading-[1.8]">
                 ห้องคาราโอเกะสไตล์มินิมอลหน้าโรงเรียนร้อยเอ็ดวิทย์ ออกแบบให้โปร่ง สะอาด แสงสวยถ่ายรูปขึ้นทุกมุม เก็บเสียงสนิทให้คุณและแก๊งเพื่อนร้องเพลงโปรดได้สุดเสียง พร้อมเครื่องดื่มคาเฟ่และน้ำอัดลมเย็นๆ ในราคาสบายกระเป๋าเริ่มต้นเพียงชั่วโมงละ 140 บาท
               </p>
             </div>
 
             {/* Hero Bottom Action & Acoustic Specs */}
             <div className="mt-10 pt-8 hairline-t grid grid-cols-1 sm:grid-cols-12 gap-6 items-end">
-              <div className="sm:col-span-7 flex flex-wrap items-center gap-3.5">
+              <div className="sm:col-span-7 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                 <Link
                   href="/booking"
-                  className="px-7 py-4 bg-[#121212] text-[#F7F5F0] hover:bg-[#D9381E] text-sm font-semibold tracking-tight editorial-transition inline-flex items-center gap-3"
+                  className="px-7 py-4 bg-[#121212] text-[#F7F5F0] hover:bg-[#D9381E] text-sm font-semibold editorial-transition flex items-center justify-center gap-3"
                 >
                   <span>จองคิวห้องออนไลน์</span>
                   <span>→</span>
                 </Link>
                 <Link
                   href="/status"
-                  className="px-5 py-4 hairline-all hover:border-[#121212] text-sm font-medium text-[#121212] editorial-transition"
+                  className="px-5 py-4 hairline-all hover:border-[#121212] text-sm font-medium text-[#121212] text-center editorial-transition"
                 >
                   เช็คสถานะคิวจอง
                 </Link>
               </div>
 
-              <div className="sm:col-span-5 sm:hairline-l sm:pl-6 space-y-1.5 text-xs text-[#68645E]">
-                <div className="flex justify-between">
+              <div className="sm:col-span-5 sm:hairline-l sm:pl-6 space-y-2 text-xs text-[#68645E]">
+                <div className="flex justify-between py-0.5">
                   <span>ราคาเริ่มต้น:</span>
-                  <span className="text-[#121212] font-bold">฿140 / ชั่วโมง (หาร 4 ตกคนละ ฿35)</span>
+                  <span className="text-[#121212] font-bold">฿140 / ชม. (หาร 4 คนละ ฿35)</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between py-0.5">
                   <span>ระบบเก็บเสียง:</span>
                   <span className="text-[#121212] font-semibold">STC-52 Acoustic Wall</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between py-0.5">
                   <span>ขนาดห้อง:</span>
                   <span className="text-[#D9381E] font-semibold">3x3 / 4x3 / 4x4 ตร.ม.</span>
                 </div>
@@ -209,10 +208,9 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Right Column (5/12): Auto-sliding Carousel (Cafe Drinks, Soft Drinks, Microphone) + Overlap Box */}
-          <div className="lg:col-span-5 py-10 lg:py-16 lg:pl-12 flex flex-col justify-between">
+          {/* Right Column (5/12): Auto-sliding Carousel */}
+          <div className="lg:col-span-5 py-10 lg:py-16 lg:pl-12 flex flex-col justify-between hairline-t lg:border-t-0">
             <div className="relative">
-              {/* Slide Indicator Bar */}
               <div className="flex justify-between items-center text-xs text-[#68645E] mb-3">
                 <span className="font-tech text-[11px] text-[#121212]">
                   {HERO_SLIDES[currentSlide].tag}
@@ -250,7 +248,7 @@ export default function HomePage() {
                       alt={slide.title}
                       className="w-full h-full object-cover"
                     />
-                    <div className="absolute top-3 right-3 bg-[#121212]/80 backdrop-blur-sm text-[#F7F5F0] px-3 py-1 text-xs font-medium">
+                    <div className="absolute top-3 left-3 right-3 sm:left-auto bg-[#121212]/85 backdrop-blur-sm text-[#F7F5F0] px-3.5 py-2 text-xs font-medium leading-relaxed">
                       {slide.title}
                     </div>
                   </div>
@@ -258,11 +256,11 @@ export default function HomePage() {
               </div>
 
               {/* Overlapping Happy Hour Box */}
-              <div className="mt-4 sm:-mt-16 sm:-ml-6 relative z-20 bg-[#F7F5F0] hairline-all p-5 max-w-xs shadow-sm">
-                <div className="font-tech text-xs text-[#D9381E] mb-1">
+              <div className="mt-4 sm:-mt-16 sm:-ml-6 relative z-20 bg-[#F7F5F0] hairline-all p-5 sm:max-w-xs shadow-sm">
+                <div className="font-tech text-xs text-[#D9381E] mb-1.5">
                   After-School Happy Hour (15:00–23:00)
                 </div>
-                <p className="text-xs text-[#121212] font-medium leading-relaxed">
+                <p className="text-xs text-[#121212] font-medium leading-[1.7]">
                   เปิดต้อนรับหลังเลิกเรียนทุกวันตั้งแต่ 15:00–23:00 น. พร้อมเมนูเครื่องดื่มคาเฟ่ น้ำอัดลม และห้องเก็บเสียงคุณภาพสูง
                 </p>
               </div>
@@ -272,20 +270,20 @@ export default function HomePage() {
       </section>
 
       {/* Part 2.3 — พาร์ทเลือกดูห้องทั้ง 3 ขนาด (01 / 03 — The Three Venting space) */}
-      <section id="spaces" className="max-w-[1400px] mx-auto px-4 sm:px-8 py-20 sm:py-24 hairline-b">
+      <section id="spaces" className="max-w-[1400px] mx-auto px-5 sm:px-8 py-16 sm:py-24 hairline-b">
         {/* Section Header */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pb-10 hairline-b items-end">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 pb-8 sm:pb-10 hairline-b items-end">
           <div className="lg:col-span-5">
             <p className="font-tech text-xs uppercase tracking-widest text-[#D9381E]">
               01 / 03 — THE THREE VENTING SPACE
             </p>
-            <h2 className="font-display text-3xl sm:text-5xl mt-2 leading-tight">
+            <h2 className="font-display text-2xl sm:text-5xl mt-2">
               The Three Venting Space
             </h2>
           </div>
           <div className="lg:col-span-4">
-            <p className="text-sm text-[#68645E] leading-relaxed">
-              เลือกขนาดห้องที่เหมาะกับแก๊งของคุณ แบ่งเป็นขนาด 3×3, 4×3 และ 4×4 ตร.ม. คลิกที่แต่ละแถวเพื่อสไลด์ดูรายละเอียดห้องแบบสมูท
+            <p className="text-sm text-[#68645E] leading-[1.75]">
+              เลือกขนาดห้องที่เหมาะกับแก๊งของคุณ แบ่งเป็นขนาด 3×3, 4×3 และ 4×4 ตร.ม. คลิกที่แต่ละแถวเพื่อสไลด์ดูรายละเอียดห้อง
             </p>
           </div>
           <div className="lg:col-span-3 lg:text-right font-tech text-xs text-[#121212]">
@@ -293,7 +291,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Interactive Split Showcase: Left 3-Row Smooth Slide Accordion (7 cols) + Right Room Preview (5 cols) */}
+        {/* Interactive Split Showcase */}
         <div className="grid grid-cols-1 lg:grid-cols-12">
           {/* Left 7 Columns: 3 Smooth Sliding Accordion Rows */}
           <div className="lg:col-span-7 lg:hairline-r">
@@ -309,41 +307,41 @@ export default function HomePage() {
                     isOpen ? 'bg-[#EFECE6]/80' : 'hover:bg-[#EFECE6]/35'
                   }`}
                 >
-                  {/* Row Header */}
-                  <div className="p-6 sm:p-8 flex items-center justify-between gap-4">
-                    <div className="flex items-baseline gap-4 sm:gap-6">
-                      <span
-                        className={`font-tech text-xs ${
-                          isOpen ? 'text-[#D9381E] font-bold' : 'text-[#68645E]'
-                        }`}
-                      >
-                        {studio.index} / {studio.code}
-                      </span>
-                      <div>
-                        <div className="flex flex-wrap items-center gap-2.5">
-                          <h3 className="font-display text-2xl sm:text-3xl text-[#121212] leading-none">
-                            {studio.name}
-                          </h3>
-                          <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#121212]/10 text-[#121212] font-semibold">
-                            {studio.capacity}
-                          </span>
-                          <span className="text-xs px-2.5 py-0.5 hairline-all bg-[#F7F5F0] text-[#68645E]">
-                            ขนาด {studio.dimensions}
-                          </span>
-                        </div>
-                        <p className="text-xs sm:text-sm text-[#68645E] mt-1.5">
-                          {studio.thaiSubtitle}
-                        </p>
+                  {/* Row Header — Airy & Mobile-Friendly (No Horizontal Cramping) */}
+                  <div className="p-5 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={`font-tech text-xs ${
+                            isOpen ? 'text-[#D9381E] font-bold' : 'text-[#68645E]'
+                          }`}
+                        >
+                          {studio.index} / {studio.code}
+                        </span>
+                        <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#121212]/10 text-[#121212] font-semibold">
+                          {studio.capacity}
+                        </span>
+                        <span className="text-xs px-2.5 py-0.5 hairline-all bg-[#F7F5F0] text-[#68645E]">
+                          ขนาด {studio.dimensions}
+                        </span>
                       </div>
+
+                      <h3 className="font-display text-2xl sm:text-3xl text-[#121212]">
+                        {studio.name}
+                      </h3>
+
+                      <p className="text-xs sm:text-sm text-[#68645E] leading-[1.65]">
+                        {studio.thaiSubtitle}
+                      </p>
                     </div>
 
-                    <div className="text-right flex-shrink-0">
-                      <div className="font-display text-lg sm:text-xl text-[#121212]">
+                    <div className="flex sm:flex-col items-baseline sm:items-end justify-between sm:justify-center pt-3 sm:pt-0 border-t sm:border-t-0 border-[#121212]/10 flex-shrink-0">
+                      <div className="font-display text-xl sm:text-2xl text-[#121212]">
                         {formatBaht(studio.ratePerHour)}
-                        <span className="text-xs font-normal text-[#68645E]">/ชม.</span>
+                        <span className="text-xs font-normal text-[#68645E]"> / ชม.</span>
                       </div>
-                      <div className="text-[11px] font-semibold text-[#D9381E]">
-                        ~คนละ ฿{perPerson}/ชม.
+                      <div className="text-xs font-semibold text-[#D9381E] mt-0.5">
+                        ~คนละ ฿{perPerson} / ชม.
                       </div>
                     </div>
                   </div>
@@ -351,34 +349,34 @@ export default function HomePage() {
                   {/* Smooth Sliding Accordion Drawer */}
                   <div className={`accordion-grid ${isOpen ? 'is-open' : ''}`}>
                     <div className="accordion-inner">
-                      <div className="px-6 sm:px-8 pb-8 pt-1 space-y-6">
-                        <p className="text-sm text-[#121212]/90 leading-relaxed max-w-2xl">
+                      <div className="px-5 sm:px-8 pb-8 pt-1 space-y-6">
+                        <p className="text-sm text-[#121212]/90 leading-[1.8] max-w-2xl">
                           {studio.story}
                         </p>
 
-                        {/* Technical Spec Bar */}
-                        <div className="grid grid-cols-3 hairline-t hairline-b py-3.5 gap-4 text-xs">
-                          <div>
-                            <span className="text-[11px] text-[#68645E] block">จำนวนคนแนะนำ</span>
+                        {/* Technical Spec Bar — Stacks cleanly on Mobile */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 hairline-t hairline-b py-4 gap-4 text-xs">
+                          <div className="flex sm:block justify-between">
+                            <span className="text-[#68645E] block mb-0.5">จำนวนคนแนะนำ</span>
                             <span className="text-[#121212] font-semibold">{studio.capacity}</span>
                           </div>
-                          <div>
-                            <span className="text-[11px] text-[#68645E] block">สัดส่วนห้อง</span>
+                          <div className="flex sm:block justify-between">
+                            <span className="text-[#68645E] block mb-0.5">สัดส่วนห้อง</span>
                             <span className="text-[#D9381E] font-bold">
                               {studio.dimensions} ({studio.areaSqm})
                             </span>
                           </div>
-                          <div>
-                            <span className="text-[11px] text-[#68645E] block">บรรยากาศแสง</span>
+                          <div className="flex sm:block justify-between">
+                            <span className="text-[#68645E] block mb-0.5">บรรยากาศแสง</span>
                             <span className="text-[#121212] font-semibold">{studio.lighting}</span>
                           </div>
                         </div>
 
                         {/* Equipment & Direct Booking Trigger */}
                         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-5">
-                          <ul className="space-y-1.5 text-xs text-[#68645E]">
+                          <ul className="space-y-2 text-xs sm:text-sm text-[#68645E] leading-[1.7]">
                             {studio.specs.map((spec, sIdx) => (
-                              <li key={sIdx} className="flex items-center gap-2">
+                              <li key={sIdx} className="flex items-start gap-2.5">
                                 <span className="text-[#D9381E] font-bold">•</span>
                                 <span>{spec}</span>
                               </li>
@@ -387,7 +385,7 @@ export default function HomePage() {
 
                           <Link
                             href={`/booking?roomId=${studio.id}`}
-                            className="px-6 py-3 bg-[#121212] text-[#F7F5F0] hover:bg-[#D9381E] text-xs font-semibold editorial-transition inline-flex items-center gap-2 self-start sm:self-end"
+                            className="w-full sm:w-auto px-6 py-3.5 bg-[#121212] text-[#F7F5F0] hover:bg-[#D9381E] text-xs font-semibold editorial-transition flex items-center justify-center gap-2 self-start sm:self-end"
                           >
                             <span>จองห้อง {studio.name}</span>
                             <span>→</span>
@@ -401,36 +399,35 @@ export default function HomePage() {
             })}
           </div>
 
-          {/* Right 5 Columns: Generated Preview Frame for 3x3, 4x3, 4x4 sqm Room */}
-          <div className="lg:col-span-5 p-6 sm:p-10 flex flex-col justify-between bg-[#EFECE6]/40">
+          {/* Right 5 Columns: Preview Frame */}
+          <div className="lg:col-span-5 p-5 sm:p-10 flex flex-col justify-between bg-[#EFECE6]/40">
             <div>
-              <div className="flex items-center justify-between text-xs text-[#68645E] mb-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[#68645E] mb-3">
                 <span className="font-semibold text-[#121212]">
                   ตัวอย่างห้อง: {activeStudio.name} ({activeStudio.code})
                 </span>
-                <span className="px-2.5 py-0.5 bg-[#121212] text-[#F7F5F0] font-semibold">
+                <span className="px-2.5 py-1 bg-[#121212] text-[#F7F5F0] font-semibold">
                   ขนาด {activeStudio.dimensions} ({activeStudio.areaSqm})
                 </span>
               </div>
 
-              {/* Room Visual Preview with Architectural Dimension Overlay */}
+              {/* Room Visual Preview */}
               <div className="image-zoom-frame relative aspect-[4/3] w-full hairline-all bg-[#EFECE6]">
                 <img
                   src={activeStudio.imageUrl}
                   alt={activeStudio.name}
                   className="w-full h-full object-cover"
                 />
-                {/* Dimension Blueprint Tag (Placeholder marker for real shop photo later) */}
-                <div className="absolute bottom-3 left-3 right-3 bg-[#F7F5F0]/95 backdrop-blur-sm hairline-all p-3 flex items-center justify-between">
+                <div className="absolute bottom-3 left-3 right-3 bg-[#F7F5F0]/95 backdrop-blur-sm hairline-all p-3 flex items-center justify-between gap-2">
                   <div>
                     <span className="text-[10px] font-bold text-[#D9381E] block uppercase">
-                      ROOM SCALE PREVIEW (เตรียมใส่ภาพห้องจริง)
+                      ROOM SCALE PREVIEW
                     </span>
                     <span className="text-xs font-bold text-[#121212]">
-                      {activeStudio.name} — พื้นที่ {activeStudio.dimensions} ({activeStudio.areaSqm})
+                      {activeStudio.name} — {activeStudio.dimensions} ({activeStudio.areaSqm})
                     </span>
                   </div>
-                  <span className="text-xs font-bold px-2.5 py-1 bg-[#EFECE6] hairline-all">
+                  <span className="text-xs font-bold px-2.5 py-1 bg-[#EFECE6] hairline-all whitespace-nowrap">
                     {activeStudio.capacity}
                   </span>
                 </div>
@@ -440,28 +437,28 @@ export default function HomePage() {
                 <div className="text-xs font-bold text-[#68645E]">
                   ชุดเครื่องเสียงและไมโครโฟนประจำห้อง
                 </div>
-                <p className="text-sm font-semibold text-[#121212]">
+                <p className="text-sm font-semibold text-[#121212] leading-[1.6]">
                   {activeStudio.acoustics}
                 </p>
               </div>
             </div>
 
-            <div className="mt-8 pt-6 hairline-t flex items-center justify-between">
+            <div className="mt-8 pt-6 hairline-t flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <span className="text-xs text-[#68645E] block">
+                <span className="text-xs text-[#68645E] block mb-1">
                   ราคาห้อง ({activeStudio.name})
                 </span>
                 <span className="font-display text-2xl sm:text-3xl text-[#121212]">
                   ฿{activeStudio.ratePerHour}{' '}
                   <span className="text-xs text-[#68645E] font-normal">
-                    / ชั่วโมง (หาร {activeStudio.headcountForSplit} คน ตกคนละ ~฿
+                    / ชม. (หาร {activeStudio.headcountForSplit} คน ตกคนละ ~฿
                     {Math.round(activeStudio.ratePerHour / activeStudio.headcountForSplit)})
                   </span>
                 </span>
               </div>
               <Link
                 href={`/booking?roomId=${activeStudio.id}`}
-                className="link-editorial text-xs font-bold text-[#D9381E]"
+                className="link-editorial text-xs font-bold text-[#D9381E] self-start sm:self-center"
               >
                 เลือกห้องนี้ →
               </Link>
@@ -471,21 +468,21 @@ export default function HomePage() {
       </section>
 
       {/* Part 2.4 — พาร์ทจุดเด่นร้าน (02 / 03 — Why We Built MOOD) */}
-      <section className="max-w-[1400px] mx-auto px-4 sm:px-8 py-20 sm:py-24 hairline-b">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+      <section className="max-w-[1400px] mx-auto px-5 sm:px-8 py-16 sm:py-24 hairline-b">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12">
           {/* Left Sticky Column */}
           <div className="lg:col-span-5">
             <div className="lg:sticky lg:top-28 space-y-5">
               <p className="font-tech text-xs uppercase tracking-widest text-[#D9381E]">
                 02 / 03 — WHY WE BUILT MOOD
               </p>
-              <h2 className="font-display text-3xl sm:text-5xl leading-[1.12] text-[#121212]">
+              <h2 className="font-display text-2xl sm:text-5xl leading-[1.28] text-[#121212]">
                 Leave your shyness behind and pour your heart into the music.
               </h2>
-              <p className="text-sm sm:text-base text-[#68645E] leading-relaxed">
+              <p className="text-sm sm:text-base text-[#68645E] leading-[1.8]">
                 ทิ้งความเขินอายไว้หน้าประตู แล้วปลดปล่อยหัวใจไปกับเสียงเพลงในสเปซมินิมอลที่เราตั้งใจสร้างให้เป็นพื้นที่เซฟโซนหลังเลิกเรียนของคุณและกลุ่มเพื่อน
               </p>
-              <div className="pt-3">
+              <div className="pt-2">
                 <Link
                   href="/booking"
                   className="inline-flex items-center gap-3 text-xs font-bold px-5 py-3.5 hairline-all hover:bg-[#121212] hover:text-[#F7F5F0] editorial-transition"
@@ -498,47 +495,47 @@ export default function HomePage() {
           </div>
 
           {/* Right 3 Chapters */}
-          <div className="lg:col-span-7 lg:pl-12 lg:hairline-l space-y-12">
+          <div className="lg:col-span-7 lg:pl-12 lg:hairline-l space-y-10 sm:space-y-12">
             {/* Chapter A */}
-            <div className="hairline-b pb-10 grid grid-cols-1 sm:grid-cols-12 gap-4">
+            <div className="hairline-b pb-8 sm:pb-10 grid grid-cols-1 sm:grid-cols-12 gap-3 sm:gap-4">
               <div className="sm:col-span-3 font-tech text-xs text-[#D9381E]">
                 CHAPTER A
               </div>
-              <div className="sm:col-span-9 space-y-2">
-                <h3 className="text-xl sm:text-2xl font-bold text-[#121212]">
+              <div className="sm:col-span-9 space-y-2.5">
+                <h3 className="text-lg sm:text-2xl font-bold text-[#121212] leading-[1.45]">
                   แสงสวย บรรยากาศได้ พร้อมให้คุณได้ขับร้อง
                 </h3>
-                <p className="text-sm text-[#68645E] leading-relaxed">
+                <p className="text-sm text-[#68645E] leading-[1.8]">
                   จัดแสงไฟโทนอุ่นสบายตา บรรยากาศเหมือนห้องนั่งเล่นคาเฟ่ที่ถ่ายรูปและวิดีโอสตอรี่ลงโซเชียลได้สวยทุกมุม พร้อมห้องเก็บเสียงที่ให้คุณร้องได้สุดเสียงแบบไม่ต้องกั๊ก
                 </p>
               </div>
             </div>
 
             {/* Chapter B */}
-            <div className="hairline-b pb-10 grid grid-cols-1 sm:grid-cols-12 gap-4">
+            <div className="hairline-b pb-8 sm:pb-10 grid grid-cols-1 sm:grid-cols-12 gap-3 sm:gap-4">
               <div className="sm:col-span-3 font-tech text-xs text-[#D9381E]">
                 CHAPTER B
               </div>
-              <div className="sm:col-span-9 space-y-2">
-                <h3 className="text-xl sm:text-2xl font-bold text-[#121212]">
+              <div className="sm:col-span-9 space-y-2.5">
+                <h3 className="text-lg sm:text-2xl font-bold text-[#121212] leading-[1.45]">
                   เพลงครบทุกเทสต์ (T-Pop, Indie, K-Pop) กดคิวผ่าน iPad หรือสแกนจากมือถือ
                 </h3>
-                <p className="text-sm text-[#68645E] leading-relaxed">
+                <p className="text-sm text-[#68645E] leading-[1.8]">
                   อัปเดตเพลงฮิตติดชาร์ตทั้งเพลงไทย T-Pop, เพลงอินดี้, K-Pop และสากล เลือกกดคิวเพลงผ่านหน้าจอ iPad ประจำโต๊ะ หรือสแกนจากมือถือของเพื่อนแต่ละคนส่งเพลงเข้าคิวได้ทันที
                 </p>
               </div>
             </div>
 
             {/* Chapter C */}
-            <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 sm:gap-4">
               <div className="sm:col-span-3 font-tech text-xs text-[#D9381E]">
                 CHAPTER C
               </div>
-              <div className="sm:col-span-9 space-y-2">
-                <h3 className="text-xl sm:text-2xl font-bold text-[#121212]">
+              <div className="sm:col-span-9 space-y-2.5">
+                <h3 className="text-lg sm:text-2xl font-bold text-[#121212] leading-[1.45]">
                   ไม่มีบังคับสั่งอาหารขั้นต่ำ ไม่มีเซอร์วิสชาร์จแอบแฝง
                 </h3>
-                <p className="text-sm text-[#68645E] leading-relaxed">
+                <p className="text-sm text-[#68645E] leading-[1.8]">
                   คิดค่าห้องตามชั่วโมงจริงแบบตรงไปตรงมา เข้าใจงบนักเรียน 100% จะมานั่งร้องเพลงอย่างเดียวหรือสั่งเครื่องดื่มคาเฟ่และน้ำอัดลมมาดื่มเพิ่มก็เลือกได้ตามใจ
                 </p>
               </div>
@@ -548,13 +545,13 @@ export default function HomePage() {
       </section>
 
       {/* Part 2.5 — พาร์ทตารางเทียบราคา & 4 ขั้นตอนการจอง (03 / 03 — Rates & Reservation) */}
-      <section className="max-w-[1400px] mx-auto px-4 sm:px-8 pt-20 sm:pt-24">
-        <div className="mb-10 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+      <section className="max-w-[1400px] mx-auto px-5 sm:px-8 pt-16 sm:pt-24">
+        <div className="mb-8 sm:mb-10 flex flex-col sm:flex-row sm:items-end justify-between gap-3">
           <div>
             <p className="font-tech text-xs uppercase tracking-widest text-[#D9381E]">
               03 / 03 — RATES &amp; RESERVATION
             </p>
-            <h2 className="font-display text-3xl sm:text-5xl mt-2 leading-tight">
+            <h2 className="font-display text-2xl sm:text-5xl mt-2">
               Rates &amp; Reservation
             </h2>
           </div>
@@ -563,34 +560,34 @@ export default function HomePage() {
           </p>
         </div>
 
-        {/* Single-Rate Clean Table (15:00 - 23:00) */}
+        {/* Single-Rate Clean Table (whitespace-nowrap prevents cramped column wrapping on phones) */}
         <div className="hairline-all overflow-x-auto bg-[#F7F5F0]">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse whitespace-nowrap">
             <thead>
               <tr className="hairline-b bg-[#EFECE6] font-tech text-xs text-[#68645E]">
-                <th className="py-4 px-6 hairline-r">รหัสห้อง</th>
-                <th className="py-4 px-6 hairline-r">ชื่อห้อง (Venting Space)</th>
-                <th className="py-4 px-6 hairline-r">ขนาดพื้นที่</th>
-                <th className="py-4 px-6 hairline-r">จำนวนคน</th>
-                <th className="py-4 px-6 hairline-r text-[#D9381E]">
-                  อัตราค่าบริการ (รอบ 15:00–23:00 น.)
+                <th className="py-4 px-5 sm:px-6 hairline-r">รหัสห้อง</th>
+                <th className="py-4 px-5 sm:px-6 hairline-r">ชื่อห้อง</th>
+                <th className="py-4 px-5 sm:px-6 hairline-r">ขนาดพื้นที่</th>
+                <th className="py-4 px-5 sm:px-6 hairline-r">จำนวนคน</th>
+                <th className="py-4 px-5 sm:px-6 hairline-r text-[#D9381E]">
+                  ราคา (15:00–23:00 น.)
                 </th>
-                <th className="py-4 px-6">หารเฉลี่ยต่อคน</th>
+                <th className="py-4 px-5 sm:px-6">หารเฉลี่ยต่อคน</th>
               </tr>
             </thead>
             <tbody className="text-xs sm:text-sm">
               {STUDIOS.map((st) => (
                 <tr key={st.id} className="hairline-b hover:bg-[#EFECE6]/50 editorial-transition">
-                  <td className="py-4 px-6 font-tech font-bold hairline-r">{st.code}</td>
-                  <td className="py-4 px-6 font-bold hairline-r">{st.name}</td>
-                  <td className="py-4 px-6 hairline-r">
+                  <td className="py-4 px-5 sm:px-6 font-tech font-bold hairline-r">{st.code}</td>
+                  <td className="py-4 px-5 sm:px-6 font-bold hairline-r">{st.name}</td>
+                  <td className="py-4 px-5 sm:px-6 hairline-r">
                     {st.dimensions} ({st.areaSqm})
                   </td>
-                  <td className="py-4 px-6 text-[#68645E] hairline-r">{st.capacity}</td>
-                  <td className="py-4 px-6 font-bold text-[#D9381E] hairline-r">
+                  <td className="py-4 px-5 sm:px-6 text-[#68645E] hairline-r">{st.capacity}</td>
+                  <td className="py-4 px-5 sm:px-6 font-bold text-[#D9381E] hairline-r">
                     ฿{st.ratePerHour} / ชั่วโมง
                   </td>
-                  <td className="py-4 px-6 text-xs text-[#68645E]">
+                  <td className="py-4 px-5 sm:px-6 text-xs text-[#68645E]">
                     ~฿{Math.round(st.ratePerHour / st.headcountForSplit)} / คน / ชม.
                   </td>
                 </tr>
@@ -600,33 +597,33 @@ export default function HomePage() {
         </div>
 
         {/* 4 Steps Grid */}
-        <div className="mt-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 hairline-all">
+        <div className="mt-12 sm:mt-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 hairline-all">
           <div className="p-6 sm:p-8 hairline-b lg:border-b-0 sm:hairline-r">
-            <span className="font-tech text-xs text-[#D9381E] block mb-3">Step 01</span>
-            <h4 className="font-bold text-base mb-1.5">เลือกห้อง</h4>
-            <p className="text-xs text-[#68645E] leading-relaxed">
+            <span className="font-tech text-xs text-[#D9381E] block mb-2.5">Step 01</span>
+            <h4 className="font-bold text-base mb-2">เลือกห้อง</h4>
+            <p className="text-xs sm:text-sm text-[#68645E] leading-[1.75]">
               เลือกขนาดห้อง Catch-Up(S), Get-together(M) หรือ Reunion(L) ตามจำนวนเพื่อน
             </p>
           </div>
           <div className="p-6 sm:p-8 hairline-b lg:border-b-0 lg:hairline-r">
-            <span className="font-tech text-xs text-[#D9381E] block mb-3">Step 02</span>
-            <h4 className="font-bold text-base mb-1.5">ล็อกคิวอัตโนมัติ</h4>
-            <p className="text-xs text-[#68645E] leading-relaxed">
+            <span className="font-tech text-xs text-[#D9381E] block mb-2.5">Step 02</span>
+            <h4 className="font-bold text-base mb-2">ล็อกคิวอัตโนมัติ</h4>
+            <p className="text-xs sm:text-sm text-[#68645E] leading-[1.75]">
               เลือกรอบเวลาที่ต้องการ ระบบล็อกคิวห้องให้ทันทีป้องกันการจองซ้ำ
             </p>
           </div>
           <div className="p-6 sm:p-8 hairline-b sm:border-b-0 sm:hairline-r">
-            <span className="font-tech text-xs text-[#D9381E] block mb-3">Step 03</span>
-            <h4 className="font-bold text-base mb-1.5">ชำระค่าเข้าบริการ</h4>
-            <p className="text-xs text-[#68645E] leading-relaxed">
+            <span className="font-tech text-xs text-[#D9381E] block mb-2.5">Step 03</span>
+            <h4 className="font-bold text-base mb-2">ชำระค่าเข้าบริการ</h4>
+            <p className="text-xs sm:text-sm text-[#68645E] leading-[1.75]">
               สแกนชำระผ่าน QR Code PromptPay และกดยืนยันการจองในระบบ
             </p>
           </div>
           <div className="p-6 sm:p-8 flex flex-col justify-between bg-[#EFECE6]/50">
             <div>
-              <span className="font-tech text-xs text-[#D9381E] block mb-3">Step 04</span>
-              <h4 className="font-bold text-base mb-1.5">รับรหัสเข้าห้อง</h4>
-              <p className="text-xs text-[#68645E] leading-relaxed mb-4">
+              <span className="font-tech text-xs text-[#D9381E] block mb-2.5">Step 04</span>
+              <h4 className="font-bold text-base mb-2">รับรหัสเข้าห้อง</h4>
+              <p className="text-xs sm:text-sm text-[#68645E] leading-[1.75] mb-4">
                 รับรหัสการจองเพื่อนำมาแจ้งพนักงานหน้าร้านและเข้าห้องร้องเพลงได้ทันที
               </p>
             </div>

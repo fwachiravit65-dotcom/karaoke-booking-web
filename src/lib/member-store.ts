@@ -1,19 +1,29 @@
+import { Booking, BookingStatus } from '@/types';
+
+export type AccountRole = 'CUSTOMER' | 'STAFF';
+
 export interface MemberProfile {
   phone: string;
   name: string;
-  pin: string; // Stored for DEV inspection in demo mode along with hash
+  pin: string;
   pinHash: string;
+  role: AccountRole;
+  promotedAt?: string;
+  staffTitle?: string;
   totalHoursAccumulated: number;
   freeHoursAvailable: number;
   createdAt: string;
+  loginCount?: number;
 }
 
 export interface StaffAccount {
   staffId: string;
+  phone: string;
   name: string;
   pinCode: string;
   branch: string;
   role: string;
+  isPromotedMember?: boolean;
 }
 
 export interface DevAccount {
@@ -27,43 +37,29 @@ export interface DevAccount {
 // ============================================================================
 export const DEV_ACCOUNTS: DevAccount[] = [
   {
-    devId: 'mood-dev',
-    password: 'MOOD-DEV-2026',
-    role: 'Lead System Developer',
-  },
-  {
-    devId: 'owner-roiet',
-    password: 'MOOD-ROIET-01',
-    role: 'Branch Owner (ร้อยเอ็ด 1)',
+    devId: '0956602420',
+    password: '0956602420A',
+    role: 'Lead DEV & System Owner',
   },
 ];
 
-// ============================================================================
-// REGISTERED STAFF ACCOUNTS (รหัสพนักงานที่ลงทะเบียนไว้ทั้งหมดในระบบ)
-// ============================================================================
-export const REGISTERED_STAFF: StaffAccount[] = [
+// Default master staff PINs (in addition to any member promoted to STAFF via DEV page)
+export const MASTER_STAFF_ACCOUNTS: StaffAccount[] = [
   {
-    staffId: 'STF-001',
-    name: 'พนักงานเคาน์เตอร์หลัก (กะบ่าย 15:00-23:00)',
+    staffId: 'STF-MASTER',
+    phone: '0956602420',
+    name: 'รหัสกลางเคาน์เตอร์หน้าร้าน (Master Counter)',
     pinCode: '888888',
     branch: 'สาขาร้อยเอ็ด 1 (หน้าโรงเรียนร้อยเอ็ดวิทยาลัย)',
-    role: 'Front Counter Staff',
-  },
-  {
-    staffId: 'STF-002',
-    name: 'บาริสต้า & ดูแลโซนคาเฟ่',
-    pinCode: '777777',
-    branch: 'สาขาร้อยเอ็ด 1 (หน้าโรงเรียนร้อยเอ็ดวิทยาลัย)',
-    role: 'Cafe & Drink Bar',
-  },
-  {
-    staffId: 'STF-003',
-    name: 'ผู้จัดการร้าน (Store Manager)',
-    pinCode: '999999',
-    branch: 'สาขาร้อยเอ็ด 1 (หน้าโรงเรียนร้อยเอ็ดวิทยาลัย)',
-    role: 'Branch Manager',
+    role: 'Master Counter PIN',
   },
 ];
+
+const MEMBERS_STORAGE_KEY = 'mood_karaoke_members_v2';
+const SESSION_STORAGE_KEY = 'mood_karaoke_active_session_v2';
+const LOCKOUT_STORAGE_KEY = 'mood_karaoke_pin_lockout_v2';
+const BOOKINGS_STORAGE_KEY = 'mood_karaoke_bookings_v2';
+const VISITS_STORAGE_KEY = 'mood_karaoke_site_visits_v2';
 
 export function verifyDevLogin(
   devId: string,
@@ -75,14 +71,6 @@ export function verifyDevLogin(
   if (!match) return { success: false };
   return { success: true, account: match };
 }
-
-export function verifyStaffPin(pin: string): StaffAccount | null {
-  return REGISTERED_STAFF.find((s) => s.pinCode === pin.trim()) || null;
-}
-
-const MEMBERS_STORAGE_KEY = 'mood_karaoke_members_v1';
-const SESSION_STORAGE_KEY = 'mood_karaoke_active_session_v1';
-const LOCKOUT_STORAGE_KEY = 'mood_karaoke_pin_lockout_v1';
 
 export function hashPin(phone: string, pin: string): string {
   const raw = `MOOD_SALT_${phone.trim()}_${pin.trim()}`;
@@ -100,22 +88,50 @@ export function normalizePhone(phone: string): string {
 function getDefaultSeedMembers(): MemberProfile[] {
   return [
     {
+      phone: '0956602420',
+      name: 'flook',
+      pin: '123456',
+      pinHash: hashPin('0956602420', '123456'),
+      role: 'STAFF',
+      promotedAt: '2026-11-22T10:00:00Z',
+      staffTitle: 'ผู้ดูแลร้าน & พนักงานหลัก',
+      totalHoursAccumulated: 3,
+      freeHoursAvailable: 0,
+      createdAt: '2026-11-22T09:00:00Z',
+      loginCount: 5,
+    },
+    {
       phone: '0812345678',
       name: 'มิ้นท์ (แก๊ง ม.6/2)',
       pin: '123456',
       pinHash: hashPin('0812345678', '123456'),
+      role: 'CUSTOMER',
       totalHoursAccumulated: 6,
       freeHoursAvailable: 0,
       createdAt: '2026-11-20T15:30:00Z',
+      loginCount: 4,
     },
     {
       phone: '0899887766',
       name: 'เจเจ (ชมรมดนตรี ร.ว.)',
       pin: '654321',
       pinHash: hashPin('0899887766', '654321'),
+      role: 'CUSTOMER',
       totalHoursAccumulated: 11,
       freeHoursAvailable: 1,
       createdAt: '2026-11-21T16:10:00Z',
+      loginCount: 7,
+    },
+    {
+      phone: '0823334444',
+      name: 'ปอนด์ (ม.5/4)',
+      pin: '111222',
+      pinHash: hashPin('0823334444', '111222'),
+      role: 'CUSTOMER',
+      totalHoursAccumulated: 2,
+      freeHoursAvailable: 0,
+      createdAt: '2026-11-22T14:20:00Z',
+      loginCount: 2,
     },
   ];
 }
@@ -129,7 +145,12 @@ export function getAllMembers(): MemberProfile[] {
       localStorage.setItem(MEMBERS_STORAGE_KEY, JSON.stringify(seed));
       return seed;
     }
-    return JSON.parse(raw);
+    const parsed: MemberProfile[] = JSON.parse(raw);
+    return parsed.map((m) => ({
+      ...m,
+      role: m.role || 'CUSTOMER',
+      loginCount: m.loginCount || 1,
+    }));
   } catch {
     return getDefaultSeedMembers();
   }
@@ -138,6 +159,67 @@ export function getAllMembers(): MemberProfile[] {
 function saveAllMembers(members: MemberProfile[]) {
   if (typeof window === 'undefined') return;
   localStorage.setItem(MEMBERS_STORAGE_KEY, JSON.stringify(members));
+}
+
+// ============================================================================
+// PROMOTE / DEMOTE MEMBER TO STAFF VIA DEV CONSOLE
+// ============================================================================
+export function toggleMemberStaffRole(
+  phone: string,
+  makeStaff: boolean,
+  staffTitle = 'พนักงานหน้าร้าน (Promoted Staff)'
+): MemberProfile[] {
+  const normalized = normalizePhone(phone);
+  const members = getAllMembers();
+  const updated = members.map((m) => {
+    if (m.phone !== normalized) return m;
+    return {
+      ...m,
+      role: (makeStaff ? 'STAFF' : 'CUSTOMER') as AccountRole,
+      promotedAt: makeStaff ? new Date().toISOString() : undefined,
+      staffTitle: makeStaff ? staffTitle : undefined,
+    };
+  });
+  saveAllMembers(updated);
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('mood-auth-change'));
+  }
+  return updated;
+}
+
+// Get all active staff (Master Staff + Members promoted to STAFF via DEV Console)
+export function getAllRegisteredStaff(): StaffAccount[] {
+  const members = getAllMembers();
+  const promotedMembers: StaffAccount[] = members
+    .filter((m) => m.role === 'STAFF')
+    .map((m, idx) => ({
+      staffId: `STF-${String(idx + 1).padStart(3, '0')}`,
+      phone: m.phone,
+      name: m.name,
+      pinCode: m.pin || '••••••',
+      branch: 'สาขาร้อยเอ็ด 1 (หน้าโรงเรียนร้อยเอ็ดวิทยาลัย)',
+      role: m.staffTitle || 'พนักงานร้าน (Promoted via DEV)',
+      isPromotedMember: true,
+    }));
+
+  return [...promotedMembers, ...MASTER_STAFF_ACCOUNTS];
+}
+
+// Verify Staff Login on /admin: accepts either a promoted staff member's PIN (or phone+PIN) OR master PIN 888888
+export function verifyStaffPin(pinInput: string, phoneInput?: string): StaffAccount | null {
+  const cleanPin = pinInput.trim();
+  const cleanPhone = phoneInput ? normalizePhone(phoneInput) : '';
+
+  const allStaff = getAllRegisteredStaff();
+
+  if (cleanPhone) {
+    const exactMatch = allStaff.find(
+      (s) => s.phone === cleanPhone && s.pinCode === cleanPin
+    );
+    if (exactMatch) return exactMatch;
+  }
+
+  return allStaff.find((s) => s.pinCode === cleanPin) || null;
 }
 
 export function getCurrentMember(): MemberProfile | null {
@@ -188,9 +270,11 @@ export function registerMember(
     name: name.trim(),
     pin,
     pinHash: hashPin(phone, pin),
+    role: 'CUSTOMER',
     totalHoursAccumulated: 1,
     freeHoursAvailable: 0,
     createdAt: new Date().toISOString(),
+    loginCount: 1,
   };
 
   const updated = [...members, newMember];
@@ -260,6 +344,12 @@ export function loginMember(
     return { success: false, message: 'รหัส PIN 6 หลักไม่ถูกต้อง' };
   }
 
+  // Increment loginCount
+  const updated = members.map((m) =>
+    m.phone === found.phone ? { ...m, loginCount: (m.loginCount || 1) + 1 } : m
+  );
+  saveAllMembers(updated);
+
   if (typeof window !== 'undefined') {
     localStorage.removeItem(LOCKOUT_STORAGE_KEY);
     localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({ phone: found.phone }));
@@ -289,4 +379,136 @@ export function addMemberHours(rawPhone: string, hoursToAdd: number) {
   });
   saveAllMembers(updated);
   window.dispatchEvent(new Event('mood-auth-change'));
+}
+
+// ============================================================================
+// UNIFIED BOOKINGS & SITE METRICS STORE (FOR /booking, /status, /admin, /dev)
+// ============================================================================
+function getDefaultSeedBookings(): Booking[] {
+  return [
+    {
+      id: 'b-101',
+      bookingCode: 'MD-20261122-R2-8F2',
+      roomId: 'R2',
+      customerName: 'มิ้นท์ (แก๊ง ม.6/2)',
+      customerPhone: '0812345678',
+      customerEmail: 'mint@student.ac.th',
+      bookingDate: '2026-11-22',
+      startTime: '16:00',
+      endTime: '18:00',
+      totalHours: 2,
+      roomCharge: 280,
+      packageCharge: 0,
+      totalAmount: 280,
+      depositAmount: 280,
+      status: 'PENDING',
+      slipImageUrl: 'https://images.unsplash.com/photo-1554415707-9e4466bfe0dc?w=400',
+      createdAt: '2026-11-22T10:00:00Z',
+    },
+    {
+      id: 'b-102',
+      bookingCode: 'MD-20261122-R7-311',
+      roomId: 'R7',
+      customerName: 'เจเจ (ชมรมดนตรี ร.ว.)',
+      customerPhone: '0899887766',
+      bookingDate: '2026-11-22',
+      startTime: '18:00',
+      endTime: '21:00',
+      totalHours: 3,
+      roomCharge: 840,
+      packageCharge: 0,
+      totalAmount: 840,
+      depositAmount: 840,
+      status: 'CONFIRMED',
+      slipImageUrl: 'https://images.unsplash.com/photo-1554415707-9e4466bfe0dc?w=400',
+      createdAt: '2026-11-22T08:15:00Z',
+    },
+    {
+      id: 'b-103',
+      bookingCode: 'MD-20261122-R1-948',
+      roomId: 'R1',
+      customerName: 'ปอนด์ (ม.5/4)',
+      customerPhone: '0823334444',
+      bookingDate: '2026-11-22',
+      startTime: '15:00',
+      endTime: '17:00',
+      totalHours: 2,
+      roomCharge: 280,
+      packageCharge: 0,
+      totalAmount: 280,
+      depositAmount: 280,
+      status: 'COMPLETED',
+      createdAt: '2026-11-22T06:00:00Z',
+    },
+    {
+      id: 'b-104',
+      bookingCode: 'MD-20261121-R5-409',
+      roomId: 'R5',
+      customerName: 'บีม & เพื่อน',
+      customerPhone: '0865554321',
+      bookingDate: '2026-11-21',
+      startTime: '19:00',
+      endTime: '21:00',
+      totalHours: 2,
+      roomCharge: 400,
+      packageCharge: 0,
+      totalAmount: 400,
+      depositAmount: 400,
+      status: 'REJECTED',
+      createdAt: '2026-11-21T12:00:00Z',
+    },
+  ];
+}
+
+export function getAllBookings(): Booking[] {
+  if (typeof window === 'undefined') return getDefaultSeedBookings();
+  try {
+    const raw = localStorage.getItem(BOOKINGS_STORAGE_KEY);
+    if (!raw) {
+      const seed = getDefaultSeedBookings();
+      localStorage.setItem(BOOKINGS_STORAGE_KEY, JSON.stringify(seed));
+      return seed;
+    }
+    return JSON.parse(raw);
+  } catch {
+    return getDefaultSeedBookings();
+  }
+}
+
+export function saveNewBooking(newBooking: Booking): Booking[] {
+  const current = getAllBookings();
+  const updated = [newBooking, ...current];
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(BOOKINGS_STORAGE_KEY, JSON.stringify(updated));
+    window.dispatchEvent(new Event('mood-bookings-change'));
+  }
+  return updated;
+}
+
+export function updateBookingStatusInStore(
+  bookingId: string,
+  newStatus: BookingStatus
+): Booking[] {
+  const current = getAllBookings();
+  const updated = current.map((b) =>
+    b.id === bookingId ? { ...b, status: newStatus } : b
+  );
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(BOOKINGS_STORAGE_KEY, JSON.stringify(updated));
+    window.dispatchEvent(new Event('mood-bookings-change'));
+  }
+  return updated;
+}
+
+export function getSiteUsageCount(): number {
+  const members = getAllMembers();
+  const totalMemberLogins = members.reduce((sum, m) => sum + (m.loginCount || 1), 0);
+  if (typeof window === 'undefined') return 128 + totalMemberLogins;
+  try {
+    const raw = localStorage.getItem(VISITS_STORAGE_KEY);
+    const base = raw ? parseInt(raw, 10) : 128;
+    return base + totalMemberLogins;
+  } catch {
+    return 128 + totalMemberLogins;
+  }
 }

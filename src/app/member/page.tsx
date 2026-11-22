@@ -14,7 +14,6 @@ export default function MemberPage() {
   const [activeMember, setActiveMember] = useState<MemberProfile | null>(null);
   const [mode, setMode] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
 
-  // Form states
   const [phone, setPhone] = useState('');
   const [name, setName] = useState('');
   const [pin, setPin] = useState('');
@@ -64,7 +63,6 @@ export default function MemberPage() {
       const nextPin = pin + digit;
       setPin(nextPin);
       if (nextPin.length === 6) {
-        // Auto-verify once 6th digit is pressed (just like mobile banking apps)
         setTimeout(() => {
           handleSubmitAuth(nextPin);
         }, 140);
@@ -94,22 +92,29 @@ export default function MemberPage() {
     }, 150);
   };
 
-  // IF LOGGED IN: SHOW DIGITAL MEMBER CARD & 10-HOUR STAMP LEDGER
   if (activeMember) {
     const stampsInCurrentCycle = activeMember.totalHoursAccumulated % 10;
     const hoursUntilFree = 10 - stampsInCurrentCycle;
     const freeHoursEarned = Math.floor(activeMember.totalHoursAccumulated / 10);
+    const isStaff = activeMember.role === 'STAFF';
 
     return (
-      <div className="max-w-[1150px] mx-auto px-4 sm:px-8 py-12 sm:py-16">
+      <div className="max-w-[1150px] mx-auto px-5 sm:px-8 py-12 sm:py-16">
         {/* Top Member Header */}
-        <div className="hairline-b pb-8 mb-12 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div className="hairline-b pb-8 mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
-            <p className="font-tech text-xs uppercase tracking-widest text-[#D9381E]">
-              MOOD® AFTER-SCHOOL CLUB — MEMBER PASS
-            </p>
-            <h1 className="font-display text-5xl sm:text-6xl text-[#121212] mt-2 leading-none">
-              Welcome, {activeMember.name}
+            <div className="flex flex-wrap items-center gap-2.5">
+              <p className="font-tech text-xs uppercase tracking-widest text-[#D9381E]">
+                MOOD® MEMBER PASS
+              </p>
+              {isStaff && (
+                <span className="px-2.5 py-0.5 bg-[#121212] text-[#F7F5F0] text-xs font-bold">
+                  ★ บัญชีพนักงานร้าน (STAFF)
+                </span>
+              )}
+            </div>
+            <h1 className="font-display text-4xl sm:text-6xl text-[#121212] mt-2">
+              สวัสดี, {activeMember.name}
             </h1>
           </div>
 
@@ -122,12 +127,32 @@ export default function MemberPage() {
             }}
             className="px-5 py-2.5 hairline-all font-tech text-xs uppercase tracking-wider text-[#68645E] hover:text-[#121212] hover:border-[#121212] editorial-transition self-start sm:self-end"
           >
-            SIGN OUT / ออกจากระบบ
+            ออกจากระบบ (SIGN OUT)
           </button>
         </div>
 
+        {/* If promoted to STAFF via DEV console, show direct Staff Counter Banner */}
+        {isStaff && (
+          <div className="mb-10 p-5 hairline-all bg-[#121212] text-[#F7F5F0] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <span className="text-xs font-bold text-[#D9381E] block">
+                ★ สิทธิ์พนักงานร้าน (ได้รับการโปรโมทจากระบบ DEV แล้ว)
+              </span>
+              <p className="text-xs sm:text-sm mt-1">
+                บัญชีของคุณสามารถเข้าใช้งานหน้าจัดการคิวห้องและตรวจสลิปหน้าร้านได้ทันทีด้วยรหัส PIN ของคุณเอง
+              </p>
+            </div>
+            <Link
+              href="/admin"
+              className="px-5 py-3 bg-[#D9381E] hover:bg-[#F7F5F0] hover:text-[#121212] text-[#F7F5F0] text-xs font-bold whitespace-nowrap text-center editorial-transition"
+            >
+              เข้าหน้าจัดการร้าน (/admin) →
+            </Link>
+          </div>
+        )}
+
         {/* Main Asymmetric Member Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12">
           {/* Left 7 Cols: 10-Hour Acoustic Stamp Card */}
           <div className="lg:col-span-7 space-y-8">
             <div className="bg-[#EFECE6] hairline-all p-6 sm:p-10">
@@ -136,7 +161,7 @@ export default function MemberPage() {
                   <span className="font-tech text-[10px] uppercase tracking-widest text-[#68645E] block">
                     LOYALTY STAMP CARD (สะสมครบ 10 ชม. ฟรี 1 ชม.)
                   </span>
-                  <h2 className="font-display text-3xl sm:text-4xl text-[#121212] mt-1">
+                  <h2 className="font-display text-2xl sm:text-4xl text-[#121212] mt-1">
                     10-Hour Studio Pass
                   </h2>
                 </div>
@@ -158,7 +183,7 @@ export default function MemberPage() {
                   return (
                     <div
                       key={slotNumber}
-                      className={`aspect-square hairline-r hairline-b p-3 flex flex-col justify-between editorial-transition ${
+                      className={`aspect-square hairline-r hairline-b p-2.5 sm:p-3 flex flex-col justify-between editorial-transition ${
                         isStamped
                           ? 'bg-[#121212] text-[#F7F5F0]'
                           : isRewardSlot
@@ -171,11 +196,11 @@ export default function MemberPage() {
                       </span>
                       <div className="text-center my-auto">
                         {isStamped ? (
-                          <span className="font-display text-2xl sm:text-3xl italic text-[#F7F5F0]">
+                          <span className="font-display text-xl sm:text-3xl text-[#F7F5F0]">
                             M.
                           </span>
                         ) : isRewardSlot ? (
-                          <span className="font-tech text-[10px] font-bold uppercase tracking-tighter">
+                          <span className="font-tech text-[10px] font-bold uppercase">
                             FREE 1H
                           </span>
                         ) : (
@@ -190,12 +215,12 @@ export default function MemberPage() {
                 })}
               </div>
 
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 hairline-t text-xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 hairline-t text-xs">
                 <span className="text-[#121212] font-medium">
                   อีกเพียง <strong className="text-[#D9381E]">{hoursUntilFree} ชั่วโมง</strong> จะได้รับสิทธิ์ร้องฟรี 1 ชั่วโมง!
                 </span>
                 <span className="font-tech text-[11px] text-[#68645E]">
-                  TOTAL ACCUMULATED: {activeMember.totalHoursAccumulated} HRS
+                  ชั่วโมงสะสมรวมทั้งหมด: {activeMember.totalHoursAccumulated} ชม.
                 </span>
               </div>
             </div>
@@ -208,28 +233,30 @@ export default function MemberPage() {
                 <span className="font-tech text-[10px] uppercase tracking-widest text-[#68645E] block">
                   MEMBER CREDENTIALS
                 </span>
-                <h3 className="font-display text-3xl text-[#121212] mt-1">
-                  Account Ledger
+                <h3 className="font-display text-2xl sm:text-3xl text-[#121212] mt-1">
+                  ข้อมูลบัญชีสมาชิก
                 </h3>
               </div>
 
-              <div className="space-y-3 font-tech text-xs">
+              <div className="space-y-3 text-xs sm:text-sm">
                 <div className="flex justify-between py-2 hairline-b">
-                  <span className="text-[#68645E]">PHONE ID (เบอร์สมาชิก)</span>
-                  <span className="text-[#121212] font-semibold">{activeMember.phone}</span>
+                  <span className="text-[#68645E]">เบอร์โทรศัพท์ (ID)</span>
+                  <span className="text-[#121212] font-bold">{activeMember.phone}</span>
                 </div>
                 <div className="flex justify-between py-2 hairline-b">
-                  <span className="text-[#68645E]">NICKNAME</span>
-                  <span className="font-sans text-[#121212] font-medium">{activeMember.name}</span>
+                  <span className="text-[#68645E]">ชื่อเล่น</span>
+                  <span className="text-[#121212] font-semibold">{activeMember.name}</span>
                 </div>
                 <div className="flex justify-between py-2 hairline-b">
-                  <span className="text-[#68645E]">SECURITY PIN</span>
-                  <span className="text-[#121212]">• • • • • • (6-DIGIT LOCK)</span>
+                  <span className="text-[#68645E]">สถานะบัญชี</span>
+                  <span className="text-[#121212] font-bold">
+                    {isStaff ? '★ พนักงานร้าน (STAFF)' : 'สมาชิกทั่วไป (CUSTOMER)'}
+                  </span>
                 </div>
                 <div className="flex justify-between py-2">
-                  <span className="text-[#68645E]">FREE HOURS VOUCHER</span>
-                  <span className="text-[#D9381E] font-semibold">
-                    {freeHoursEarned} ชั่วโมงฟรีที่ใช้ได้
+                  <span className="text-[#68645E]">สิทธิ์ชั่วโมงฟรีที่มี</span>
+                  <span className="text-[#D9381E] font-bold">
+                    {freeHoursEarned} ชั่วโมงฟรี
                   </span>
                 </div>
               </div>
@@ -237,15 +264,15 @@ export default function MemberPage() {
               <div className="pt-4 space-y-3">
                 <Link
                   href="/booking"
-                  className="w-full py-4 bg-[#121212] text-[#F7F5F0] hover:bg-[#D9381E] font-tech text-xs uppercase tracking-widest text-center block editorial-transition"
+                  className="w-full py-4 bg-[#121212] text-[#F7F5F0] hover:bg-[#D9381E] text-xs font-bold uppercase tracking-wider text-center block editorial-transition"
                 >
-                  RESERVE STUDIO &amp; EARN STAMPS →
+                  ไปหน้าจองห้องพร้อมสะสมชั่วโมง →
                 </Link>
                 <Link
                   href={`/status?phone=${activeMember.phone}`}
-                  className="w-full py-3.5 hairline-all text-[#121212] hover:bg-[#EFECE6] font-tech text-xs uppercase tracking-widest text-center block editorial-transition"
+                  className="w-full py-3.5 hairline-all text-[#121212] hover:bg-[#EFECE6] text-xs font-bold uppercase tracking-wider text-center block editorial-transition"
                 >
-                  VIEW MY RESERVATIONS (เช็คคิวของฉัน)
+                  เช็คสถานะคิวจองของฉัน
                 </Link>
               </div>
             </div>
@@ -255,27 +282,24 @@ export default function MemberPage() {
     );
   }
 
-  // IF NOT LOGGED IN: SHOW PHONE ID + 6-DIGIT BANK-STYLE PIN KEYPAD
   return (
-    <div className="max-w-[1150px] mx-auto px-4 sm:px-8 py-12 sm:py-16">
+    <div className="max-w-[1150px] mx-auto px-5 sm:px-8 py-12 sm:py-16">
       <div className="grid grid-cols-1 lg:grid-cols-12 hairline-all bg-[#F7F5F0]">
-        {/* Left 6 Cols: Editorial Explanation & Mode Switcher */}
-        <div className="lg:col-span-6 p-8 sm:p-12 lg:hairline-r flex flex-col justify-between bg-[#EFECE6]/50">
+        {/* Left 6 Cols */}
+        <div className="lg:col-span-6 p-7 sm:p-12 lg:hairline-r flex flex-col justify-between bg-[#EFECE6]/50">
           <div>
             <p className="font-tech text-xs uppercase tracking-widest text-[#D9381E]">
               MOOD® MEMBER ACCESS — PHONE + 6-DIGIT PIN
             </p>
-            <h1 className="font-display text-5xl sm:text-6xl text-[#121212] mt-3 leading-[0.96]">
-              Quick access. <br />
-              <span className="italic text-[#68645E]">No email required.</span>
+            <h1 className="font-display text-4xl sm:text-5xl text-[#121212] mt-3">
+              เข้าสู่ระบบ / สมัครสมาชิก
             </h1>
 
-            <p className="mt-6 text-sm text-[#68645E] leading-relaxed">
-              เข้าสู่ระบบหรือสมัครสมาชิกง่ายๆ ใน 10 วินาที เพียงใช้ <strong>เบอร์โทรศัพท์ 10 หลัก</strong> คู่กับ <strong>รหัส PIN ตัวเลข 6 หลัก</strong> (เหมือนแอปธนาคาร) เพื่อรับสิทธิ์สะสมชั่วโมงร้องเพลงครบ 10 ชม. ฟรี 1 ชม. และดึงชื่ออัตโนมัติเวลาจองห้อง
+            <p className="mt-5 text-sm text-[#68645E] leading-[1.8]">
+              เข้าสู่ระบบหรือสมัครสมาชิกง่ายๆ ใน 10 วินาที เพียงใช้ <strong>เบอร์โทรศัพท์ 10 หลัก</strong> คู่กับ <strong>รหัส PIN ตัวเลข 6 หลัก</strong> เพื่อรับสิทธิ์สะสมชั่วโมงร้องเพลงครบ 10 ชม. ฟรี 1 ชม.
             </p>
 
-            {/* Benefits List */}
-            <div className="mt-8 pt-6 hairline-t space-y-3 text-xs text-[#121212]">
+            <div className="mt-8 pt-6 hairline-t space-y-3 text-xs sm:text-sm text-[#121212]">
               <div className="flex items-baseline gap-3">
                 <span className="font-tech text-[#D9381E]">01</span>
                 <span>สมัครใหม่วันนี้ รับฟรีแสตมป์สะสม 1 ชั่วโมงแรกทันที</span>
@@ -286,12 +310,11 @@ export default function MemberPage() {
               </div>
               <div className="flex items-baseline gap-3">
                 <span className="font-tech text-[#D9381E]">03</span>
-                <span>ป้องกันคนอื่นแอบเอาเบอร์โทรมาสวมรอยดูหรือยกเลิกคิวจอง</span>
+                <span>พนักงานใหม่สามารถสมัครสมาชิกที่นี่เพื่อให้ผู้ดูแลโปรโมทเป็นบัญชีพนักงานได้</span>
               </div>
             </div>
           </div>
 
-          {/* 1-Click Demo Testing Helper */}
           <div className="mt-10 pt-6 hairline-t">
             <span className="font-tech text-[10px] uppercase tracking-widest text-[#68645E] block mb-2">
               FOR TESTING / ทดลองระบบทันที
@@ -299,17 +322,16 @@ export default function MemberPage() {
             <button
               type="button"
               onClick={fillDemoAccount}
-              className="px-4 py-2.5 hairline-all bg-[#F7F5F0] hover:bg-[#121212] hover:text-[#F7F5F0] font-tech text-xs editorial-transition"
+              className="px-4 py-2.5 hairline-all bg-[#F7F5F0] hover:bg-[#121212] hover:text-[#F7F5F0] text-xs font-bold editorial-transition"
             >
               คลิกเพื่อเข้าบัญชีตัวอย่าง (0812345678 / PIN: 123456) →
             </button>
           </div>
         </div>
 
-        {/* Right 6 Cols: Phone Input & Tactile 6-Digit Bank Keypad */}
-        <div className="lg:col-span-6 p-8 sm:p-12">
-          {/* Mode Tabs */}
-          <div className="grid grid-cols-2 hairline-all mb-8 font-tech text-xs">
+        {/* Right 6 Cols: Phone Input & 6-Digit Bank Keypad */}
+        <div className="lg:col-span-6 p-7 sm:p-12">
+          <div className="grid grid-cols-2 hairline-all mb-8 text-xs font-bold">
             <button
               type="button"
               onClick={() => {
@@ -319,11 +341,11 @@ export default function MemberPage() {
               }}
               className={`py-3.5 uppercase tracking-wider editorial-transition ${
                 mode === 'LOGIN'
-                  ? 'bg-[#121212] text-[#F7F5F0] font-semibold'
+                  ? 'bg-[#121212] text-[#F7F5F0]'
                   : 'bg-[#F7F5F0] text-[#68645E] hover:text-[#121212]'
               }`}
             >
-              01 / เข้าสู่ระบบ (LOGIN)
+              01 / เข้าสู่ระบบ
             </button>
             <button
               type="button"
@@ -334,19 +356,18 @@ export default function MemberPage() {
               }}
               className={`py-3.5 uppercase tracking-wider hairline-l editorial-transition ${
                 mode === 'REGISTER'
-                  ? 'bg-[#121212] text-[#F7F5F0] font-semibold'
+                  ? 'bg-[#121212] text-[#F7F5F0]'
                   : 'bg-[#F7F5F0] text-[#68645E] hover:text-[#121212]'
               }`}
             >
-              02 / สมัครใหม่ (REGISTER)
+              02 / สมัครใหม่
             </button>
           </div>
 
-          {/* Step 1: Phone ID & Name */}
           <div className="space-y-4 mb-8">
             <div>
-              <label className="block font-tech text-[11px] uppercase tracking-wider text-[#68645E] mb-1.5">
-                PHONE NUMBER ID / เบอร์โทรศัพท์ 10 หลัก *
+              <label className="block text-xs font-bold text-[#68645E] mb-1.5">
+                เบอร์โทรศัพท์ 10 หลัก (ใช้เป็น ID) *
               </label>
               <input
                 type="tel"
@@ -354,35 +375,33 @@ export default function MemberPage() {
                 placeholder="08XXXXXXXX"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ''))}
-                className="w-full px-4 py-3 bg-[#F7F5F0] hairline-all font-tech text-base tracking-wider text-[#121212] focus:border-[#121212] focus:outline-none"
+                className="w-full px-4 py-3.5 bg-[#F7F5F0] hairline-all font-bold text-base tracking-wider text-[#121212] focus:border-[#121212] focus:outline-none"
               />
             </div>
 
             {mode === 'REGISTER' && (
               <div>
-                <label className="block font-tech text-[11px] uppercase tracking-wider text-[#68645E] mb-1.5">
-                  NICKNAME / ชื่อเล่น และชื่อแก๊ง *
+                <label className="block text-xs font-bold text-[#68645E] mb-1.5">
+                  ชื่อเล่น *
                 </label>
                 <input
                   type="text"
-                  placeholder="เช่น นนนี่ (ม.5/1)"
+                  placeholder="เช่น มิ้นท์"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-3 bg-[#F7F5F0] hairline-all text-sm text-[#121212] focus:border-[#121212] focus:outline-none"
+                  className="w-full px-4 py-3.5 bg-[#F7F5F0] hairline-all text-base sm:text-sm text-[#121212] focus:border-[#121212] focus:outline-none"
                 />
               </div>
             )}
           </div>
 
-          {/* Step 2: 6-Digit PIN Dots Display */}
           <div className="mb-6 text-center">
-            <div className="font-tech text-[11px] uppercase tracking-widest text-[#68645E] mb-3">
+            <div className="text-xs font-bold text-[#68645E] mb-3">
               {mode === 'LOGIN'
-                ? 'ENTER 6-DIGIT SECURITY PIN (กดรหัส PIN 6 หลัก)'
-                : 'SET YOUR 6-DIGIT PIN (ตั้งรหัสผ่านตัวเลข 6 หลัก)'}
+                ? 'กดรหัส PIN 6 หลักของคุณ'
+                : 'ตั้งรหัส PIN ตัวเลข 6 หลัก'}
             </div>
 
-            {/* 6 Indicator Circles */}
             <div className="flex items-center justify-center gap-4 py-3">
               {Array.from({ length: 6 }).map((_, idx) => {
                 const isFilled = idx < pin.length;
@@ -401,7 +420,7 @@ export default function MemberPage() {
 
             {statusMessage && (
               <div
-                className={`mt-3 p-3 text-xs font-medium hairline-all ${
+                className={`mt-3 p-3 text-xs font-bold hairline-all ${
                   statusMessage.type === 'error'
                     ? 'bg-[#D9381E]/10 text-[#D9381E] border-[#D9381E]/30'
                     : 'bg-[#121212] text-[#F7F5F0]'
@@ -412,14 +431,13 @@ export default function MemberPage() {
             )}
           </div>
 
-          {/* Architectural Bank-Style Number Pad */}
           <div className="grid grid-cols-3 hairline-t hairline-l select-none">
             {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((digit) => (
               <button
                 type="button"
                 key={digit}
                 onClick={() => handleDigitPress(digit)}
-                className="py-4 hairline-r hairline-b bg-[#F7F5F0] hover:bg-[#EFECE6] active:bg-[#121212] active:text-[#F7F5F0] font-tech text-lg font-medium text-[#121212] transition-colors"
+                className="py-4 hairline-r hairline-b bg-[#F7F5F0] hover:bg-[#EFECE6] active:bg-[#121212] active:text-[#F7F5F0] text-lg font-bold text-[#121212] transition-colors"
               >
                 {digit}
               </button>
@@ -427,27 +445,27 @@ export default function MemberPage() {
             <button
               type="button"
               onClick={handleClearPin}
-              className="py-4 hairline-r hairline-b bg-[#EFECE6]/50 hover:bg-[#EFECE6] font-tech text-xs uppercase tracking-wider text-[#68645E]"
+              className="py-4 hairline-r hairline-b bg-[#EFECE6]/50 hover:bg-[#EFECE6] text-xs font-bold uppercase text-[#68645E]"
             >
               CLEAR
             </button>
             <button
               type="button"
               onClick={() => handleDigitPress('0')}
-              className="py-4 hairline-r hairline-b bg-[#F7F5F0] hover:bg-[#EFECE6] active:bg-[#121212] active:text-[#F7F5F0] font-tech text-lg font-medium text-[#121212] transition-colors"
+              className="py-4 hairline-r hairline-b bg-[#F7F5F0] hover:bg-[#EFECE6] active:bg-[#121212] active:text-[#F7F5F0] text-lg font-bold text-[#121212] transition-colors"
             >
               0
             </button>
             <button
               type="button"
               onClick={handleBackspace}
-              className="py-4 hairline-r hairline-b bg-[#EFECE6]/50 hover:bg-[#EFECE6] font-tech text-sm text-[#121212]"
+              className="py-4 hairline-r hairline-b bg-[#EFECE6]/50 hover:bg-[#EFECE6] text-sm font-bold text-[#121212]"
             >
               ⌫ DEL
             </button>
           </div>
 
-          <p className="mt-4 text-center font-tech text-[11px] text-[#68645E]">
+          <p className="mt-4 text-center text-xs text-[#68645E]">
             เมื่อกดตัวเลขครบ 6 หลัก ระบบจะเข้าสู่บัญชีให้อัตโนมัติทันที
           </p>
         </div>

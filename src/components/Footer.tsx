@@ -16,7 +16,7 @@ export default function Footer() {
     setDevError('');
     const res = verifyDevLogin(devId, devPass);
     if (!res.success || !res.account) {
-      setDevError('ID หรือรหัสผ่าน DEV ไม่ถูกต้อง (ต้องใช้รหัสจากโค้ดเท่านั้น)');
+      setDevError('ID หรือรหัสผ่าน DEV ไม่ถูกต้อง');
       return;
     }
     if (typeof window !== 'undefined') {
@@ -27,7 +27,7 @@ export default function Footer() {
 
   return (
     <footer className="hairline-t bg-[#F7F5F0] text-[#121212] mt-28">
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-8">
+      <div className="max-w-[1400px] mx-auto px-5 sm:px-8">
         {/* Top 3-Column Grid */}
         <div className="grid grid-cols-1 md:grid-cols-12 hairline-b">
           {/* Col 1: Brand Statement */}
@@ -41,7 +41,7 @@ export default function Footer() {
                 <span className="text-[#68645E] font-semibold">for loud friends.</span>
               </h3>
             </div>
-            <p className="mt-6 text-xs sm:text-sm text-[#68645E] leading-relaxed">
+            <p className="mt-6 text-xs sm:text-sm text-[#68645E] leading-[1.8]">
               พื้นที่ปล่อยจอยหลังเลิกเรียน ห้องเก็บเสียงดีไซน์มินิมอล แสงสวย บรรยากาศได้ พร้อมให้คุณระบายมันออกมาให้มากที่สุด
             </p>
           </div>
@@ -52,7 +52,7 @@ export default function Footer() {
               <p className="font-tech text-[11px] uppercase tracking-widest text-[#68645E] mb-4">
                 HOURS &amp; LOCATION
               </p>
-              <div className="space-y-2.5 text-xs sm:text-sm">
+              <div className="space-y-3 text-xs sm:text-sm">
                 <div className="flex justify-between py-1.5 hairline-b">
                   <span className="text-[#68645E]">เปิดให้บริการทุกวัน (After School)</span>
                   <span className="font-tech font-semibold">15:00 — 23:00</span>
@@ -133,7 +133,7 @@ export default function Footer() {
                     </a>
                   </li>
                   <li className="pt-2 font-tech text-xs text-[#68645E]">
-                    TEL : 098-XXX-XXXX
+                    TEL : 095-660-2420
                   </li>
                 </ul>
               </div>
@@ -150,21 +150,21 @@ export default function Footer() {
                   DEV ONLY
                 </span>
                 <span className="font-display text-sm text-[#121212]">
-                  ระบบล็อกอินสำหรับทีม DEV (ตรวจสอบจำนวนบัญชีลูกค้า &amp; รหัสพนักงานทั้งหมด)
+                  สำหรับทีม DEV เท่านั้น (ตรวจสอบบัญชีลูกค้า &amp; รหัสพนักงานทั้งหมด)
                 </span>
               </div>
               <p className="text-xs text-[#68645E] mt-1">
-                * แยกจากหน้าพนักงานทั่วไป ต้องใช้ ID และรหัสผ่านที่เขียนระบุไว้ในโค้ดเท่านั้น (ทดสอบ: ID <code className="text-[#121212] font-semibold">mood-dev</code> / Pass <code className="text-[#121212] font-semibold">MOOD-DEV-2026</code>)
+                * แยกจากหน้าพนักงานทั่วไป เข้าสู่ระบบด้วย ID และรหัสผ่านสำหรับผู้ดูแลระบบระดับโค้ดเท่านั้น
               </p>
             </div>
 
             <form onSubmit={handleQuickDevLogin} className="flex flex-wrap items-center gap-2.5">
               <input
                 type="text"
-                placeholder="DEV ID (เช่น mood-dev)"
+                placeholder="DEV ID"
                 value={devId}
                 onChange={(e) => setDevId(e.target.value)}
-                className="px-3.5 py-2 bg-[#F7F5F0] hairline-all text-xs text-[#121212] focus:border-[#121212] focus:outline-none w-44"
+                className="px-3.5 py-2.5 bg-[#F7F5F0] hairline-all text-xs text-[#121212] focus:border-[#121212] focus:outline-none w-full sm:w-44"
                 required
               />
               <input
@@ -172,12 +172,12 @@ export default function Footer() {
                 placeholder="DEV Password"
                 value={devPass}
                 onChange={(e) => setDevPass(e.target.value)}
-                className="px-3.5 py-2 bg-[#F7F5F0] hairline-all text-xs text-[#121212] focus:border-[#121212] focus:outline-none w-44"
+                className="px-3.5 py-2.5 bg-[#F7F5F0] hairline-all text-xs text-[#121212] focus:border-[#121212] focus:outline-none w-full sm:w-44"
                 required
               />
               <button
                 type="submit"
-                className="px-4 py-2 bg-[#121212] hover:bg-[#D9381E] text-[#F7F5F0] font-tech text-xs uppercase tracking-wider editorial-transition"
+                className="w-full sm:w-auto px-5 py-2.5 bg-[#121212] hover:bg-[#D9381E] text-[#F7F5F0] font-tech text-xs uppercase tracking-wider editorial-transition"
               >
                 LOGIN DEV →
               </button>
@@ -190,7 +190,7 @@ export default function Footer() {
 
         {/* Bottom Oversized Full-Width Wordmark: MOOD.KARAOKE */}
         <div className="py-8 hairline-t flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4">
-          <div className="font-display text-5xl sm:text-7xl lg:text-8xl tracking-tight leading-none select-none text-[#121212]">
+          <div className="font-display text-4xl sm:text-7xl lg:text-8xl tracking-tight leading-none select-none text-[#121212]">
             MOOD<span className="text-[#D9381E]">.</span>KARAOKE
           </div>
           <div className="font-tech text-[11px] text-[#68645E] uppercase tracking-wider">

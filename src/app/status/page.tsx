@@ -1,71 +1,45 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { formatBaht, getStatusBadge } from '@/lib/utils';
 import { Booking } from '@/types';
-
-const MOCK_BOOKINGS: Booking[] = [
-  {
-    id: 'b-1',
-    bookingCode: 'MD-20261122-8F29',
-    roomId: 'room-2',
-    customerName: 'มิ้นท์ (แก๊ง ม.6/2)',
-    customerPhone: '0812345678',
-    customerEmail: 'mint@student.ac.th',
-    bookingDate: '2026-11-22',
-    startTime: '16:00',
-    endTime: '18:00',
-    totalHours: 2,
-    roomCharge: 400,
-    packageCharge: 0,
-    totalAmount: 400,
-    depositAmount: 400,
-    status: 'CONFIRMED',
-    slipImageUrl: 'https://images.unsplash.com/photo-1554415707-9e4466bfe0dc?w=400',
-    createdAt: '2026-11-22T10:00:00Z',
-  },
-  {
-    id: 'b-2',
-    bookingCode: 'MD-20261123-9921',
-    roomId: 'room-1',
-    customerName: 'มิ้นท์ (แก๊ง ม.6/2)',
-    customerPhone: '0812345678',
-    bookingDate: '2026-11-23',
-    startTime: '17:00',
-    endTime: '19:00',
-    totalHours: 2,
-    roomCharge: 280,
-    packageCharge: 0,
-    totalAmount: 280,
-    depositAmount: 280,
-    status: 'PENDING',
-    createdAt: '2026-11-22T12:30:00Z',
-  },
-];
+import { getAllBookings, getCurrentMember } from '@/lib/member-store';
 
 export default function StatusPage() {
   const [searchTerm, setSearchTerm] = useState('0812345678');
+  const [bookings, setBookings] = useState<Booking[]>([]);
 
-  const filteredBookings = MOCK_BOOKINGS.filter(
+  useEffect(() => {
+    setBookings(getAllBookings());
+    const m = getCurrentMember();
+    if (m) {
+      setSearchTerm(m.phone);
+    }
+    const syncBookings = () => setBookings(getAllBookings());
+    window.addEventListener('mood-bookings-change', syncBookings);
+    return () => window.removeEventListener('mood-bookings-change', syncBookings);
+  }, []);
+
+  const filteredBookings = bookings.filter(
     (b) =>
       b.customerPhone.includes(searchTerm.trim()) ||
       b.bookingCode.toLowerCase().includes(searchTerm.trim().toLowerCase())
   );
 
   return (
-    <div className="max-w-[1100px] mx-auto px-4 sm:px-8 py-14 sm:py-20">
+    <div className="max-w-[1100px] mx-auto px-5 sm:px-8 py-14 sm:py-20">
       {/* Header */}
       <div className="hairline-b pb-8 mb-10 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <p className="font-tech text-xs text-[#D9381E]">
             02 / TICKET &amp; QUEUE LOOKUP
           </p>
-          <h1 className="font-display text-4xl sm:text-5xl text-[#121212] mt-2 leading-tight">
+          <h1 className="font-display text-3xl sm:text-5xl text-[#121212] mt-2">
             เช็คคิวจองของคุณ
           </h1>
         </div>
-        <p className="text-xs sm:text-sm text-[#68645E] max-w-sm">
+        <p className="text-xs sm:text-sm text-[#68645E] max-w-sm leading-[1.75]">
           ค้นหาคิวห้องของคุณด้วยเบอร์โทรศัพท์ หรือรหัสการจอง (MD-...)
         </p>
       </div>
@@ -81,7 +55,7 @@ export default function StatusPage() {
             placeholder="0812345678 หรือ MD-..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="flex-1 px-5 py-4 bg-transparent text-sm font-semibold text-[#121212] focus:outline-none"
+            className="flex-1 px-5 py-4 bg-transparent text-base sm:text-sm font-semibold text-[#121212] focus:outline-none"
           />
           <button
             type="button"
@@ -123,7 +97,7 @@ export default function StatusPage() {
                     </span>
                   </div>
                   <span
-                    className={`inline-block text-xs font-bold px-3.5 py-1.5 border ${badge.color}`}
+                    className={`inline-block text-xs font-bold px-3.5 py-1.5 border self-start sm:self-center ${badge.color}`}
                   >
                     {badge.label}
                   </span>
@@ -139,9 +113,7 @@ export default function StatusPage() {
                   <div>
                     <span className="text-xs text-[#68645E] block mb-1">ห้องที่จอง</span>
                     <span className="text-[#121212] font-bold">
-                      {booking.roomId === 'room-2'
-                        ? 'ST-102 · Get-together(M)'
-                        : 'ST-101 · Catch-Up(S)'}
+                      ห้อง {booking.roomId}
                     </span>
                   </div>
                   <div>
@@ -162,6 +134,10 @@ export default function StatusPage() {
                   {booking.status === 'CONFIRMED' ? (
                     <span className="text-[#121212] font-medium">
                       ✓ ห้องถูกล็อกคิวเรียบร้อยแล้ว แสดงรหัส {booking.bookingCode} ที่เคาน์เตอร์หน้าร้านได้เลย
+                    </span>
+                  ) : booking.status === 'REJECTED' ? (
+                    <span className="text-[#D9381E] font-medium">
+                      × รายการจองนี้ถูกปฏิเสธหรือยกเลิก กรุณาติดต่อพนักงานหน้าร้าน
                     </span>
                   ) : (
                     <span>
