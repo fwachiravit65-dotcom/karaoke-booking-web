@@ -43,18 +43,6 @@ export const DEV_ACCOUNTS: DevAccount[] = [
   },
 ];
 
-// Default master staff PINs (in addition to any member promoted to STAFF via DEV page)
-export const MASTER_STAFF_ACCOUNTS: StaffAccount[] = [
-  {
-    staffId: 'STF-MASTER',
-    phone: '0956602420',
-    name: 'รหัสกลางเคาน์เตอร์หน้าร้าน (Master Counter)',
-    pinCode: '888888',
-    branch: 'สาขาร้อยเอ็ด 1 (หน้าโรงเรียนร้อยเอ็ดวิทยาลัย)',
-    role: 'Master Counter PIN',
-  },
-];
-
 const MEMBERS_STORAGE_KEY = 'mood_karaoke_members_v2';
 const SESSION_STORAGE_KEY = 'mood_karaoke_active_session_v2';
 const LOCKOUT_STORAGE_KEY = 'mood_karaoke_pin_lockout_v2';
@@ -167,7 +155,7 @@ function saveAllMembers(members: MemberProfile[]) {
 export function toggleMemberStaffRole(
   phone: string,
   makeStaff: boolean,
-  staffTitle = 'พนักงานหน้าร้าน (Promoted Staff)'
+  staffTitle = 'พนักงานหน้าร้าน (Promoted via DEV)'
 ): MemberProfile[] {
   const normalized = normalizePhone(phone);
   const members = getAllMembers();
@@ -187,10 +175,10 @@ export function toggleMemberStaffRole(
   return updated;
 }
 
-// Get all active staff (Master Staff + Members promoted to STAFF via DEV Console)
+// Get all active staff (Strictly accounts promoted to STAFF via DEV Console)
 export function getAllRegisteredStaff(): StaffAccount[] {
   const members = getAllMembers();
-  const promotedMembers: StaffAccount[] = members
+  return members
     .filter((m) => m.role === 'STAFF')
     .map((m, idx) => ({
       staffId: `STF-${String(idx + 1).padStart(3, '0')}`,
@@ -198,28 +186,72 @@ export function getAllRegisteredStaff(): StaffAccount[] {
       name: m.name,
       pinCode: m.pin || '••••••',
       branch: 'สาขาร้อยเอ็ด 1 (หน้าโรงเรียนร้อยเอ็ดวิทยาลัย)',
-      role: m.staffTitle || 'พนักงานร้าน (Promoted via DEV)',
+      role: m.staffTitle || 'พนักงานร้าน (อนุมัติจาก DEV)',
       isPromotedMember: true,
     }));
-
-  return [...promotedMembers, ...MASTER_STAFF_ACCOUNTS];
 }
 
-// Verify Staff Login on /admin: accepts either a promoted staff member's PIN (or phone+PIN) OR master PIN 888888
-export function verifyStaffPin(pinInput: string, phoneInput?: string): StaffAccount | null {
+// Strictly verify both Staff ID (Phone Number) + 6-Digit PIN AND verify role === 'STAFF'
+export function verifyStaffCredentials(
+  phoneInput: string,
+  pinInput: string
+): { success: boolean; message: string; staff?: StaffAccount } {
+  const cleanPhone = normalizePhone(phoneInput);
   const cleanPin = pinInput.trim();
-  const cleanPhone = phoneInput ? normalizePhone(phoneInput) : '';
 
-  const allStaff = getAllRegisteredStaff();
-
-  if (cleanPhone) {
-    const exactMatch = allStaff.find(
-      (s) => s.phone === cleanPhone && s.pinCode === cleanPin
-    );
-    if (exactMatch) return exactMatch;
+  if (!cleanPhone || cleanPhone.length < 9) {
+    return {
+      success: false,
+      message: 'กรุณากรอกไอดีพนักงาน (เบอร์โทรศัพท์ 10 หลัก) ให้ครบถ้วนก่อนกดรหัส PIN',
+    };
   }
 
-  return allStaff.find((s) => s.pinCode === cleanPin) || null;
+  if (!/^\d{6}$/.test(cleanPin)) {
+    return {
+      success: false,
+      message: 'กรุณากดรหัส PIN ให้ครบ 6 หลัก',
+    };
+  }
+
+  const members = getAllMembers();
+  const found = members.find((m) => m.phone === cleanPhone);
+
+  if (!found) {
+    return {
+      success: false,
+      message: 'ไม่พบไอดีเบอร์โทรศัพท์นี้ในระบบ (พนักงานต้องสมัครสมาชิกบนเว็บก่อน)',
+    };
+  }
+
+  const expectedHash = hashPin(cleanPhone, cleanPin);
+  if (found.pinHash !== expectedHash && found.pin !== cleanPin) {
+    return {
+      success: false,
+      message: 'รหัส PIN 6 หลักไม่ถูกต้องสำหรับไอดีนี้',
+    };
+  }
+
+  if (found.role !== 'STAFF') {
+    return {
+      success: false,
+      message:
+        'ไอดีนี้เป็นบัญชีลูกค้าทั่วไป ยังไม่ได้รับการโปรโมทเป็นพนักงานจากหน้า DEV',
+    };
+  }
+
+  return {
+    success: true,
+    message: 'เข้าสู่ระบบพนักงานสำเร็จ',
+    staff: {
+      staffId: `STF-${found.phone.slice(-4)}`,
+      phone: found.phone,
+      name: found.name,
+      pinCode: found.pin,
+      branch: 'สาขาร้อยเอ็ด 1 (หน้าโรงเรียนร้อยเอ็ดวิทยาลัย)',
+      role: found.staffTitle || 'พนักงานร้าน (อนุมัติจาก DEV)',
+      isPromotedMember: true,
+    },
+  };
 }
 
 export function getCurrentMember(): MemberProfile | null {
@@ -344,7 +376,6 @@ export function loginMember(
     return { success: false, message: 'รหัส PIN 6 หลักไม่ถูกต้อง' };
   }
 
-  // Increment loginCount
   const updated = members.map((m) =>
     m.phone === found.phone ? { ...m, loginCount: (m.loginCount || 1) + 1 } : m
   );

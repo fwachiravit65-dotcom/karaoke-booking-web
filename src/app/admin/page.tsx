@@ -5,8 +5,7 @@ import { formatBaht, getStatusBadge } from '@/lib/utils';
 import { Booking, BookingStatus } from '@/types';
 import {
   StaffAccount,
-  verifyStaffPin,
-  getCurrentMember,
+  verifyStaffCredentials,
   getAllBookings,
   updateBookingStatusInStore,
 } from '@/lib/member-store';
@@ -22,21 +21,6 @@ export default function AdminPage() {
 
   useEffect(() => {
     setBookings(getAllBookings());
-    const currentMember = getCurrentMember();
-    if (currentMember && currentMember.role === 'STAFF') {
-      setStaffPhone(currentMember.phone);
-      // Automatically unlock if logged in as a promoted STAFF account
-      setActiveStaff({
-        staffId: 'STF-ACTIVE',
-        phone: currentMember.phone,
-        name: currentMember.name,
-        pinCode: currentMember.pin,
-        branch: 'สาขาร้อยเอ็ด 1',
-        role: currentMember.staffTitle || 'พนักงานร้าน (Promoted Staff)',
-        isPromotedMember: true,
-      });
-    }
-
     const syncBookings = () => setBookings(getAllBookings());
     window.addEventListener('mood-bookings-change', syncBookings);
     return () => window.removeEventListener('mood-bookings-change', syncBookings);
@@ -44,19 +28,22 @@ export default function AdminPage() {
 
   const handleStaffDigit = (digit: string) => {
     setPinError('');
+    if (!staffPhone || staffPhone.length < 9) {
+      setPinError('กรุณากรอกไอดีพนักงาน (เบอร์โทรศัพท์ 10 หลัก) ด้านบนก่อนกดรหัส PIN');
+      return;
+    }
+
     if (pinInput.length < 6) {
       const next = pinInput + digit;
       setPinInput(next);
       if (next.length === 6) {
         setTimeout(() => {
-          const staff = verifyStaffPin(next, staffPhone);
-          if (staff) {
-            setActiveStaff(staff);
+          const res = verifyStaffCredentials(staffPhone, next);
+          if (res.success && res.staff) {
+            setActiveStaff(res.staff);
             setPinInput('');
           } else {
-            setPinError(
-              'รหัส PIN ไม่ถูกต้อง หรือเบอร์โทรนี้ยังไม่ได้รับการโปรโมทเป็นพนักงานในหน้า DEV'
-            );
+            setPinError(res.message);
             setPinInput('');
           }
         }, 120);
@@ -71,30 +58,44 @@ export default function AdminPage() {
 
   if (!activeStaff) {
     return (
-      <div className="max-w-md mx-auto px-5 py-16 sm:py-24">
-        <div className="hairline-all bg-[#F7F5F0] p-8 sm:p-10 text-center">
-          <span className="font-tech text-[11px] uppercase tracking-widest text-[#D9381E] block">
-            STAFF ONLY — พนักงานหน้าร้าน
-          </span>
-          <h1 className="font-display text-3xl sm:text-4xl text-[#121212] mt-1">
-            Staff Counter Lock
-          </h1>
-          <p className="text-xs text-[#68645E] mt-2 mb-6 leading-relaxed">
-            ใช้เบอร์โทรและรหัส PIN 6 หลักของบัญชีที่ได้รับการโปรโมทเป็นพนักงานจากหน้า DEV เพื่อเข้าจัดการคิวห้อง
-          </p>
+      <div className="max-w-md mx-auto px-5 py-14 sm:py-20">
+        <div className="hairline-all bg-[#F7F5F0] p-7 sm:p-10">
+          <div className="text-center mb-6">
+            <span className="font-tech text-[11px] uppercase tracking-widest text-[#D9381E] block">
+              STAFF ONLY — พนักงานหน้าร้าน
+            </span>
+            <h1 className="font-display text-3xl sm:text-4xl text-[#121212] mt-1">
+              เข้าสู่ระบบพนักงาน
+            </h1>
+            <p className="text-xs text-[#68645E] mt-2 leading-[1.7]">
+              กรอก <strong>ไอดี (เบอร์โทรศัพท์)</strong> และ <strong>รหัส PIN 6 หลัก</strong> ของบัญชีที่ได้รับการโปรโมทเป็นพนักงานจากหน้า DEV แล้วเท่านั้น
+            </p>
+          </div>
 
-          <div className="mb-4 text-left">
-            <label className="block text-[11px] font-bold text-[#68645E] mb-1">
-              เบอร์โทรพนักงาน (หรือเว้นว่างหากใช้รหัสกลาง)
+          {/* Step 1: Staff ID (Phone Number) — Required */}
+          <div className="mb-6">
+            <label className="block text-xs font-bold text-[#121212] mb-2">
+              1. ไอดีพนักงาน (เบอร์โทรศัพท์ 10 หลักที่สมัครไว้) *
             </label>
             <input
               type="tel"
               maxLength={10}
-              placeholder="09XXXXXXXX"
+              placeholder="กรอกเบอร์โทรศัพท์ 10 หลัก"
               value={staffPhone}
-              onChange={(e) => setStaffPhone(e.target.value.replace(/[^0-9]/g, ''))}
-              className="w-full px-3.5 py-2.5 bg-[#F7F5F0] hairline-all text-sm font-bold text-center text-[#121212] focus:outline-none"
+              onChange={(e) => {
+                setPinError('');
+                setStaffPhone(e.target.value.replace(/[^0-9]/g, ''));
+              }}
+              className="w-full px-4 py-3.5 bg-[#EFECE6]/50 hairline-all text-base font-bold text-center tracking-wider text-[#121212] focus:border-[#121212] focus:bg-[#F7F5F0] focus:outline-none"
+              required
             />
+          </div>
+
+          {/* Step 2: 6-Digit PIN */}
+          <div className="text-center mb-2">
+            <span className="text-xs font-bold text-[#121212] block">
+              2. กดรหัส PIN 6 หลักของไอดีคุณ *
+            </span>
           </div>
 
           {/* 6 PIN Dots */}
@@ -115,7 +116,7 @@ export default function AdminPage() {
           </div>
 
           {pinError && (
-            <div className="mb-4 p-2.5 hairline-all bg-[#D9381E]/10 text-[#D9381E] text-xs font-medium leading-relaxed">
+            <div className="mb-4 p-3 hairline-all bg-[#D9381E]/10 text-[#D9381E] text-xs font-bold text-center leading-[1.6]">
               {pinError}
             </div>
           )}
@@ -127,33 +128,43 @@ export default function AdminPage() {
                 type="button"
                 key={d}
                 onClick={() => handleStaffDigit(d)}
-                className="py-3.5 hairline-r hairline-b bg-[#F7F5F0] hover:bg-[#EFECE6] active:bg-[#121212] active:text-[#F7F5F0] text-base font-bold"
+                className="py-4 hairline-r hairline-b bg-[#F7F5F0] hover:bg-[#EFECE6] active:bg-[#121212] active:text-[#F7F5F0] text-lg font-bold"
               >
                 {d}
               </button>
             ))}
             <button
               type="button"
-              onClick={() => setPinInput('')}
-              className="py-3.5 hairline-r hairline-b bg-[#EFECE6]/50 text-xs font-bold text-[#68645E]"
+              onClick={() => {
+                setPinError('');
+                setPinInput('');
+              }}
+              className="py-4 hairline-r hairline-b bg-[#EFECE6]/50 text-xs font-bold text-[#68645E]"
             >
-              CLR
+              CLEAR
             </button>
             <button
               type="button"
               onClick={() => handleStaffDigit('0')}
-              className="py-3.5 hairline-r hairline-b bg-[#F7F5F0] hover:bg-[#EFECE6] text-base font-bold"
+              className="py-4 hairline-r hairline-b bg-[#F7F5F0] hover:bg-[#EFECE6] active:bg-[#121212] active:text-[#F7F5F0] text-lg font-bold"
             >
               0
             </button>
             <button
               type="button"
-              onClick={() => setPinInput((p) => p.slice(0, -1))}
-              className="py-3.5 hairline-r hairline-b bg-[#EFECE6]/50 text-xs font-bold text-[#121212]"
+              onClick={() => {
+                setPinError('');
+                setPinInput((p) => p.slice(0, -1));
+              }}
+              className="py-4 hairline-r hairline-b bg-[#EFECE6]/50 text-xs font-bold text-[#121212]"
             >
-              ⌫
+              ⌫ DEL
             </button>
           </div>
+
+          <p className="mt-5 text-center text-[11px] text-[#68645E] leading-[1.6]">
+            * พนักงานใหม่ต้องสมัครสมาชิกปกติที่เมนู &ldquo;03 สมาชิก (PIN)&rdquo; ก่อน แล้วให้ผู้ดูแลระบบอนุมัติสิทธิ์พนักงานผ่านหน้า DEV
+          </p>
         </div>
       </div>
     );
@@ -174,7 +185,7 @@ export default function AdminPage() {
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-8 hairline-b mb-10">
         <div>
           <p className="font-tech text-xs text-[#D9381E]">
-            STAFF COUNTER — พนักงาน: {activeStaff.name} ({activeStaff.phone})
+            STAFF COUNTER — พนักงาน: {activeStaff.name} (ID: {activeStaff.phone})
           </p>
           <h1 className="font-display text-3xl sm:text-5xl text-[#121212] mt-2">
             จัดการคิวห้องหน้าร้าน
@@ -187,10 +198,13 @@ export default function AdminPage() {
           </div>
           <button
             type="button"
-            onClick={() => setActiveStaff(null)}
+            onClick={() => {
+              setActiveStaff(null);
+              setPinInput('');
+            }}
             className="text-xs font-bold px-3.5 py-2 hairline-all hover:bg-[#121212] hover:text-[#F7F5F0] editorial-transition"
           >
-            ล็อกหน้าจอพนักงาน
+            ออกจากระบบพนักงาน
           </button>
         </div>
       </div>
