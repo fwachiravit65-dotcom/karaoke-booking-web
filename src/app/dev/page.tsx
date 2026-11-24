@@ -9,6 +9,7 @@ import {
   DevAccount,
   StaffAccount,
   AccountRole,
+  CloudSyncState,
   getAllMembers,
   getAllRegisteredStaff,
   toggleMemberStaffRole,
@@ -17,7 +18,7 @@ import {
   updateBookingStatusInStore,
   getSiteUsageCount,
   verifyDevLogin,
-  isCloudDatabaseConnected,
+  getCloudSyncStatus,
   syncFromCloudDatabase,
 } from '@/lib/member-store';
 
@@ -36,7 +37,8 @@ export default function DevConsolePage() {
   const [siteVisits, setSiteVisits] = useState<number>(0);
   const [searchAccount, setSearchAccount] = useState<string>('');
   const [toastMsg, setToastMsg] = useState<string>('');
-  const [cloudConnected, setCloudConnected] = useState<boolean>(false);
+  const [cloudState, setCloudState] = useState<CloudSyncState>({ ok: false });
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
   // Quick Add Account Form in DEV
   const [newPhone, setNewPhone] = useState('');
@@ -49,12 +51,22 @@ export default function DevConsolePage() {
     setStaffList(getAllRegisteredStaff());
     setBookings(getAllBookings());
     setSiteVisits(getSiteUsageCount());
-    setCloudConnected(isCloudDatabaseConnected());
+    setCloudState(getCloudSyncStatus());
+  };
+
+  const handleManualSync = async () => {
+    setIsSyncing(true);
+    const st = await syncFromCloudDatabase();
+    setCloudState(st);
+    refreshAllData();
+    setIsSyncing(false);
   };
 
   useEffect(() => {
-    syncFromCloudDatabase().then(() => refreshAllData());
-    refreshAllData();
+    handleManualSync();
+    const pollTimer = setInterval(() => {
+      syncFromCloudDatabase().then(() => refreshAllData());
+    }, 6000);
     try {
       const saved = sessionStorage.getItem(DEV_SESSION_KEY);
       if (saved) {
@@ -66,6 +78,7 @@ export default function DevConsolePage() {
     window.addEventListener('mood-auth-change', refreshAllData);
     window.addEventListener('mood-bookings-change', refreshAllData);
     return () => {
+      clearInterval(pollTimer);
       window.removeEventListener('mood-auth-change', refreshAllData);
       window.removeEventListener('mood-bookings-change', refreshAllData);
     };
@@ -256,21 +269,30 @@ export default function DevConsolePage() {
           <div className="flex items-center gap-2">
             <span
               className={`w-2.5 h-2.5 rounded-full ${
-                cloudConnected ? 'bg-emerald-600' : 'bg-[#D9381E]'
+                cloudState.ok ? 'bg-emerald-600' : 'bg-[#D9381E]'
               }`}
             />
             <span className="text-xs sm:text-sm font-bold text-[#121212]">
-              {cloudConnected
-                ? 'สถานะฐานข้อมูล: เชื่อมต่อ Cloud Database (Supabase) แล้ว — ซิงค์ข้อมูลข้ามทุกเครื่องอัตโนมัติ'
-                : 'สถานะฐานข้อมูลตอนนี้: โหมดจำลองในเบราว์เซอร์ (Local Browser Mode — เก็บข้อมูลแยกตามเครื่อง)'}
+              {cloudState.ok
+                ? `🟢 เชื่อมต่อฐานข้อมูลกลาง (Supabase Cloud) สำเร็จแล้ว · ซิงค์ล่าสุด ${cloudState.lastSyncedAt || ''}`
+                : `⚠️ รอปลดล็อกสิทธิ์ตารางใน Supabase (${cloudState.error || 'Permission Required'})`}
             </span>
           </div>
-          {!cloudConnected && (
+          {!cloudState.ok && (
             <p className="text-xs text-[#68645E] mt-1 leading-relaxed">
-              * หากเพื่อนกดสมัครจากโทรศัพท์อีกเครื่อง ข้อมูลจะยังอยู่ในเครื่องนั้นจนกว่าจะเชื่อมฐานข้อมูลกลาง <strong>Supabase (ฟรี)</strong> หรือคุณสามารถเพิ่มเบอร์โทรของเพื่อน/พนักงานได้จากกล่องด้านล่างนี้ทันทีครับ
+              * กรุณารันคำสั่ง SQL <code>GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated;</code> ในหน้า SQL Editor ของ Supabase เพื่อให้มือถือทุกเครื่องส่งข้อมูลเข้าตารางได้
             </p>
           )}
         </div>
+
+        <button
+          type="button"
+          onClick={handleManualSync}
+          disabled={isSyncing}
+          className="px-4 py-2 bg-[#121212] hover:bg-[#D9381E] text-[#F7F5F0] text-xs font-bold whitespace-nowrap self-start sm:self-center editorial-transition"
+        >
+          {isSyncing ? 'กำลังซิงค์...' : '🔄 ดึงข้อมูลล่าสุดจาก Cloud'}
+        </button>
       </div>
 
       {/* Toast Notification */}

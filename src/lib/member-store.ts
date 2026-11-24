@@ -33,8 +33,14 @@ export interface DevAccount {
   role: string;
 }
 
+export interface CloudSyncState {
+  ok: boolean;
+  error?: string;
+  lastSyncedAt?: string;
+}
+
 // ============================================================================
-// HARDCODED DEV CREDENTIALS (แก้ไขหรือเพิ่มไอดีทีม DEV ได้ในโค้ดส่วนนี้เท่านั้น)
+// HARDCODED DEV CREDENTIALS
 // ============================================================================
 export const DEV_ACCOUNTS: DevAccount[] = [
   {
@@ -50,8 +56,14 @@ const LOCKOUT_STORAGE_KEY = 'mood_karaoke_pin_lockout_v2';
 const BOOKINGS_STORAGE_KEY = 'mood_karaoke_bookings_v2';
 const VISITS_STORAGE_KEY = 'mood_karaoke_site_visits_v2';
 
+let latestCloudStatus: CloudSyncState = { ok: false };
+
+export function getCloudSyncStatus(): CloudSyncState {
+  return latestCloudStatus;
+}
+
 export function isCloudDatabaseConnected(): boolean {
-  return Boolean(supabase);
+  return Boolean(supabase) && latestCloudStatus.ok;
 }
 
 export function verifyDevLogin(
@@ -129,20 +141,35 @@ function getDefaultSeedMembers(): MemberProfile[] {
   ];
 }
 
-// Fetch latest members from Supabase Cloud and merge with local cache (auto-seeds cloud if empty)
-export async function syncFromCloudDatabase(): Promise<void> {
-  if (!supabase || typeof window === 'undefined') return;
+// Fetch latest members from Supabase Cloud and merge with local cache
+export async function syncFromCloudDatabase(): Promise<CloudSyncState> {
+  if (!supabase || typeof window === 'undefined') {
+    latestCloudStatus = { ok: false, error: 'No Supabase client' };
+    return latestCloudStatus;
+  }
   try {
     const { data: cloudMembers, error: mErr } = await supabase
       .from('members')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (!mErr && cloudMembers) {
+    if (mErr) {
+      latestCloudStatus = {
+        ok: false,
+        error: `${mErr.code || ''} ${mErr.message}`,
+      };
+      return latestCloudStatus;
+    }
+
+    latestCloudStatus = {
+      ok: true,
+      lastSyncedAt: new Date().toLocaleTimeString('th-TH'),
+    };
+
+    if (cloudMembers) {
       const localMembers = getAllMembers();
 
       if (cloudMembers.length === 0 && localMembers.length > 0) {
-        // Auto-seed initial local accounts into Cloud DB on first run
         const rowsToSeed = localMembers.map((m) => ({
           phone: m.phone,
           name: m.name,
@@ -171,7 +198,6 @@ export async function syncFromCloudDatabase(): Promise<void> {
           createdAt: row.created_at,
         }));
 
-        // Upload any local-only member that isn't in cloud yet
         const cloudPhones = new Set(mappedCloud.map((c) => c.phone));
         const unsyncedLocal = localMembers.filter((l) => !cloudPhones.has(l.phone));
         if (unsyncedLocal.length > 0) {
@@ -225,8 +251,11 @@ export async function syncFromCloudDatabase(): Promise<void> {
       localStorage.setItem(BOOKINGS_STORAGE_KEY, JSON.stringify(mappedB));
       window.dispatchEvent(new Event('mood-bookings-change'));
     }
-  } catch {
-    // fallback to local cache
+
+    return latestCloudStatus;
+  } catch (err: any) {
+    latestCloudStatus = { ok: false, error: err?.message || 'Network error' };
+    return latestCloudStatus;
   }
 }
 
@@ -255,9 +284,6 @@ function saveAllMembers(members: MemberProfile[]) {
   localStorage.setItem(MEMBERS_STORAGE_KEY, JSON.stringify(members));
 }
 
-// ============================================================================
-// PROMOTE / DEMOTE MEMBER TO STAFF VIA DEV CONSOLE
-// ============================================================================
 export function toggleMemberStaffRole(
   phone: string,
   makeStaff: boolean,
@@ -436,17 +462,22 @@ export function registerMember(
   if (supabase) {
     supabase
       .from('members')
-      .upsert({
-        phone: newMember.phone,
-        name: newMember.name,
-        pin: newMember.pin,
-        pin_hash: newMember.pinHash,
-        role: newMember.role,
-        total_hours_accumulated: 1,
-        free_hours_available: 0,
-        login_count: 1,
-      })
-      .then(() => {});
+      .upsert(
+        {
+          phone: newMember.phone,
+          name: newMember.name,
+          pin: newMember.pin,
+          pin_hash: newMember.pinHash,
+          role: newMember.role,
+          total_hours_accumulated: 1,
+          free_hours_available: 0,
+          login_count: 1,
+        },
+        { onConflict: 'phone' }
+      )
+      .then(() => {
+        syncFromCloudDatabase();
+      });
   }
 
   if (typeof window !== 'undefined' && initialRole === 'CUSTOMER') {
@@ -575,9 +606,6 @@ export function addMemberHours(rawPhone: string, hoursToAdd: number) {
   window.dispatchEvent(new Event('mood-auth-change'));
 }
 
-// ============================================================================
-// UNIFIED BOOKINGS & SITE METRICS STORE (FOR /booking, /status, /admin, /dev)
-// ============================================================================
 function getDefaultSeedBookings(): Booking[] {
   return [
     {
@@ -680,22 +708,25 @@ export function saveNewBooking(newBooking: Booking): Booking[] {
   if (supabase) {
     supabase
       .from('bookings')
-      .insert({
-        booking_code: newBooking.bookingCode,
-        room_id: newBooking.roomId,
-        customer_name: newBooking.customerName,
-        customer_phone: newBooking.customerPhone,
-        booking_date: newBooking.bookingDate,
-        start_time: newBooking.startTime,
-        end_time: newBooking.endTime,
-        total_hours: newBooking.totalHours,
-        room_charge: newBooking.roomCharge,
-        package_charge: newBooking.packageCharge,
-        total_amount: newBooking.totalAmount,
-        deposit_amount: newBooking.depositAmount,
-        status: newBooking.status,
-        slip_image_url: newBooking.slipImageUrl || null,
-      })
+      .upsert(
+        {
+          booking_code: newBooking.bookingCode,
+          room_id: newBooking.roomId,
+          customer_name: newBooking.customerName,
+          customer_phone: newBooking.customerPhone,
+          booking_date: newBooking.bookingDate,
+          start_time: newBooking.startTime,
+          end_time: newBooking.endTime,
+          total_hours: newBooking.totalHours,
+          room_charge: newBooking.roomCharge,
+          package_charge: newBooking.packageCharge,
+          total_amount: newBooking.totalAmount,
+          deposit_amount: newBooking.depositAmount,
+          status: newBooking.status,
+          slip_image_url: newBooking.slipImageUrl || null,
+        },
+        { onConflict: 'booking_code' }
+      )
       .then(() => {});
   }
 

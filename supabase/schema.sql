@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS public.members (
     name VARCHAR(100) NOT NULL,
     pin VARCHAR(10) NOT NULL,
     pin_hash VARCHAR(255) NOT NULL,
-    role VARCHAR(20) NOT NULL DEFAULT 'CUSTOMER', -- 'CUSTOMER' หรือ 'STAFF'
+    role VARCHAR(20) NOT NULL DEFAULT 'CUSTOMER',
     staff_title VARCHAR(100),
     promoted_at TIMESTAMPTZ,
     total_hours_accumulated INT NOT NULL DEFAULT 1,
@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS public.members (
 CREATE TABLE IF NOT EXISTS public.bookings (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     booking_code VARCHAR(40) UNIQUE NOT NULL,
-    room_id VARCHAR(20) NOT NULL, -- 'R1' ถึง 'R11'
+    room_id VARCHAR(20) NOT NULL,
     customer_name VARCHAR(100) NOT NULL,
     customer_phone VARCHAR(20) NOT NULL,
     customer_email VARCHAR(100),
@@ -38,18 +38,23 @@ CREATE TABLE IF NOT EXISTS public.bookings (
     package_charge NUMERIC(10, 2) NOT NULL DEFAULT 0,
     total_amount NUMERIC(10, 2) NOT NULL,
     deposit_amount NUMERIC(10, 2) NOT NULL,
-    status VARCHAR(20) NOT NULL DEFAULT 'PENDING', -- 'PENDING', 'CONFIRMED', 'COMPLETED', 'REJECTED'
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
     slip_image_url TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- เปิดสิทธิ์ให้เว็บอ่านและบันทึกข้อมูลผ่าน API ได้
+-- 3. เปิดสิทธิ์การใช้งานตารางให้กับ API Key (สำคัญมาก)
 ALTER TABLE public.members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bookings ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Allow public readwrite members" ON public.members;
-CREATE POLICY "Allow public readwrite members" ON public.members FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public readwrite members" ON public.members FOR ALL TO public, anon, authenticated USING (true) WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Allow public readwrite bookings" ON public.bookings;
-CREATE POLICY "Allow public readwrite bookings" ON public.bookings FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public readwrite bookings" ON public.bookings FOR ALL TO public, anon, authenticated USING (true) WITH CHECK (true);
+
+GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon, authenticated, service_role;
