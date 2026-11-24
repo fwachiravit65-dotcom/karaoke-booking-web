@@ -2,13 +2,20 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { MemberProfile, getCurrentMember } from '@/lib/member-store';
+import {
+  MemberProfile,
+  getCurrentMember,
+  syncFromCloudDatabase,
+} from '@/lib/member-store';
 
 export default function Navbar() {
   const [member, setMember] = useState<MemberProfile | null>(null);
 
   useEffect(() => {
     setMember(getCurrentMember());
+    syncFromCloudDatabase().then(() => {
+      setMember(getCurrentMember());
+    });
     const handleSync = () => setActiveMemberState();
     const setActiveMemberState = () => setMember(getCurrentMember());
     window.addEventListener('mood-auth-change', handleSync);

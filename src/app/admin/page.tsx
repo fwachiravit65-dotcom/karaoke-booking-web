@@ -8,6 +8,7 @@ import {
   verifyStaffCredentials,
   getAllBookings,
   updateBookingStatusInStore,
+  syncFromCloudDatabase,
 } from '@/lib/member-store';
 
 export default function AdminPage() {
@@ -21,6 +22,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     setBookings(getAllBookings());
+    syncFromCloudDatabase().then(() => setBookings(getAllBookings()));
     const syncBookings = () => setBookings(getAllBookings());
     window.addEventListener('mood-bookings-change', syncBookings);
     return () => window.removeEventListener('mood-bookings-change', syncBookings);
@@ -37,7 +39,8 @@ export default function AdminPage() {
       const next = pinInput + digit;
       setPinInput(next);
       if (next.length === 6) {
-        setTimeout(() => {
+        setTimeout(async () => {
+          await syncFromCloudDatabase();
           const res = verifyStaffCredentials(staffPhone, next);
           if (res.success && res.staff) {
             setActiveStaff(res.staff);

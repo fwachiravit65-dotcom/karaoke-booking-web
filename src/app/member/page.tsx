@@ -8,6 +8,7 @@ import {
   loginMember,
   registerMember,
   logoutMember,
+  syncFromCloudDatabase,
 } from '@/lib/member-store';
 
 export default function MemberPage() {
@@ -24,14 +25,16 @@ export default function MemberPage() {
 
   useEffect(() => {
     setActiveMember(getCurrentMember());
+    syncFromCloudDatabase().then(() => setActiveMember(getCurrentMember()));
     const handleSync = () => setActiveMember(getCurrentMember());
     window.addEventListener('mood-auth-change', handleSync);
     return () => window.removeEventListener('mood-auth-change', handleSync);
   }, []);
 
   const handleSubmitAuth = useCallback(
-    (pinToSubmit: string) => {
+    async (pinToSubmit: string) => {
       setStatusMessage(null);
+      await syncFromCloudDatabase();
       if (mode === 'LOGIN') {
         const res = loginMember(phone, pinToSubmit);
         if (!res.success) {

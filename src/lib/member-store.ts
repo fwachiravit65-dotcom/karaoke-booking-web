@@ -1,4 +1,5 @@
 import { Booking, BookingStatus } from '@/types';
+import { supabase } from '@/lib/supabase';
 
 export type AccountRole = 'CUSTOMER' | 'STAFF';
 
@@ -48,6 +49,10 @@ const SESSION_STORAGE_KEY = 'mood_karaoke_active_session_v2';
 const LOCKOUT_STORAGE_KEY = 'mood_karaoke_pin_lockout_v2';
 const BOOKINGS_STORAGE_KEY = 'mood_karaoke_bookings_v2';
 const VISITS_STORAGE_KEY = 'mood_karaoke_site_visits_v2';
+
+export function isCloudDatabaseConnected(): boolean {
+  return Boolean(supabase);
+}
 
 export function verifyDevLogin(
   devId: string,
@@ -124,6 +129,107 @@ function getDefaultSeedMembers(): MemberProfile[] {
   ];
 }
 
+// Fetch latest members from Supabase Cloud and merge with local cache (auto-seeds cloud if empty)
+export async function syncFromCloudDatabase(): Promise<void> {
+  if (!supabase || typeof window === 'undefined') return;
+  try {
+    const { data: cloudMembers, error: mErr } = await supabase
+      .from('members')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (!mErr && cloudMembers) {
+      const localMembers = getAllMembers();
+
+      if (cloudMembers.length === 0 && localMembers.length > 0) {
+        // Auto-seed initial local accounts into Cloud DB on first run
+        const rowsToSeed = localMembers.map((m) => ({
+          phone: m.phone,
+          name: m.name,
+          pin: m.pin,
+          pin_hash: m.pinHash,
+          role: m.role,
+          staff_title: m.staffTitle || null,
+          promoted_at: m.promotedAt || null,
+          total_hours_accumulated: m.totalHoursAccumulated || 1,
+          free_hours_available: m.freeHoursAvailable || 0,
+          login_count: m.loginCount || 1,
+        }));
+        await supabase.from('members').upsert(rowsToSeed, { onConflict: 'phone' });
+      } else if (cloudMembers.length > 0) {
+        const mappedCloud: MemberProfile[] = cloudMembers.map((row: any) => ({
+          phone: row.phone,
+          name: row.name,
+          pin: row.pin,
+          pinHash: row.pin_hash,
+          role: (row.role === 'STAFF' ? 'STAFF' : 'CUSTOMER') as AccountRole,
+          staffTitle: row.staff_title || undefined,
+          promotedAt: row.promoted_at || undefined,
+          totalHoursAccumulated: row.total_hours_accumulated || 0,
+          freeHoursAvailable: row.free_hours_available || 0,
+          loginCount: row.login_count || 1,
+          createdAt: row.created_at,
+        }));
+
+        // Upload any local-only member that isn't in cloud yet
+        const cloudPhones = new Set(mappedCloud.map((c) => c.phone));
+        const unsyncedLocal = localMembers.filter((l) => !cloudPhones.has(l.phone));
+        if (unsyncedLocal.length > 0) {
+          await supabase.from('members').upsert(
+            unsyncedLocal.map((m) => ({
+              phone: m.phone,
+              name: m.name,
+              pin: m.pin,
+              pin_hash: m.pinHash,
+              role: m.role,
+              staff_title: m.staffTitle || null,
+              promoted_at: m.promotedAt || null,
+              total_hours_accumulated: m.totalHoursAccumulated || 1,
+              free_hours_available: m.freeHoursAvailable || 0,
+              login_count: m.loginCount || 1,
+            })),
+            { onConflict: 'phone' }
+          );
+        }
+
+        const merged = [...mappedCloud, ...unsyncedLocal];
+        localStorage.setItem(MEMBERS_STORAGE_KEY, JSON.stringify(merged));
+        window.dispatchEvent(new Event('mood-auth-change'));
+      }
+    }
+
+    const { data: cloudBookings, error: bErr } = await supabase
+      .from('bookings')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (!bErr && cloudBookings && cloudBookings.length > 0) {
+      const mappedB: Booking[] = cloudBookings.map((row: any) => ({
+        id: row.id,
+        bookingCode: row.booking_code,
+        roomId: row.room_id,
+        customerName: row.customer_name,
+        customerPhone: row.customer_phone,
+        bookingDate: row.booking_date,
+        startTime: row.start_time,
+        endTime: row.end_time,
+        totalHours: row.total_hours,
+        roomCharge: Number(row.room_charge),
+        packageCharge: Number(row.package_charge || 0),
+        totalAmount: Number(row.total_amount),
+        depositAmount: Number(row.deposit_amount),
+        status: row.status as BookingStatus,
+        slipImageUrl: row.slip_image_url || undefined,
+        createdAt: row.created_at,
+      }));
+      localStorage.setItem(BOOKINGS_STORAGE_KEY, JSON.stringify(mappedB));
+      window.dispatchEvent(new Event('mood-bookings-change'));
+    }
+  } catch {
+    // fallback to local cache
+  }
+}
+
 export function getAllMembers(): MemberProfile[] {
   if (typeof window === 'undefined') return getDefaultSeedMembers();
   try {
@@ -159,23 +265,38 @@ export function toggleMemberStaffRole(
 ): MemberProfile[] {
   const normalized = normalizePhone(phone);
   const members = getAllMembers();
+  const newRole: AccountRole = makeStaff ? 'STAFF' : 'CUSTOMER';
+  const promotedAt = makeStaff ? new Date().toISOString() : undefined;
+
   const updated = members.map((m) => {
     if (m.phone !== normalized) return m;
     return {
       ...m,
-      role: (makeStaff ? 'STAFF' : 'CUSTOMER') as AccountRole,
-      promotedAt: makeStaff ? new Date().toISOString() : undefined,
+      role: newRole,
+      promotedAt,
       staffTitle: makeStaff ? staffTitle : undefined,
     };
   });
   saveAllMembers(updated);
+
+  if (supabase) {
+    supabase
+      .from('members')
+      .update({
+        role: newRole,
+        staff_title: makeStaff ? staffTitle : null,
+        promoted_at: promotedAt || null,
+      })
+      .eq('phone', normalized)
+      .then(() => {});
+  }
+
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event('mood-auth-change'));
   }
   return updated;
 }
 
-// Get all active staff (Strictly accounts promoted to STAFF via DEV Console)
 export function getAllRegisteredStaff(): StaffAccount[] {
   const members = getAllMembers();
   return members
@@ -191,7 +312,6 @@ export function getAllRegisteredStaff(): StaffAccount[] {
     }));
 }
 
-// Strictly verify both Staff ID (Phone Number) + 6-Digit PIN AND verify role === 'STAFF'
 export function verifyStaffCredentials(
   phoneInput: string,
   pinInput: string
@@ -276,7 +396,8 @@ export function logoutMember() {
 export function registerMember(
   rawPhone: string,
   name: string,
-  pin: string
+  pin: string,
+  initialRole: AccountRole = 'CUSTOMER'
 ): { success: boolean; message: string; member?: MemberProfile } {
   const phone = normalizePhone(rawPhone);
   if (phone.length < 9 || phone.length > 10) {
@@ -302,17 +423,36 @@ export function registerMember(
     name: name.trim(),
     pin,
     pinHash: hashPin(phone, pin),
-    role: 'CUSTOMER',
+    role: initialRole,
     totalHoursAccumulated: 1,
     freeHoursAvailable: 0,
     createdAt: new Date().toISOString(),
     loginCount: 1,
   };
 
-  const updated = [...members, newMember];
+  const updated = [newMember, ...members];
   saveAllMembers(updated);
-  localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({ phone: newMember.phone }));
-  window.dispatchEvent(new Event('mood-auth-change'));
+
+  if (supabase) {
+    supabase
+      .from('members')
+      .upsert({
+        phone: newMember.phone,
+        name: newMember.name,
+        pin: newMember.pin,
+        pin_hash: newMember.pinHash,
+        role: newMember.role,
+        total_hours_accumulated: 1,
+        free_hours_available: 0,
+        login_count: 1,
+      })
+      .then(() => {});
+  }
+
+  if (typeof window !== 'undefined' && initialRole === 'CUSTOMER') {
+    localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({ phone: newMember.phone }));
+    window.dispatchEvent(new Event('mood-auth-change'));
+  }
 
   return {
     success: true,
@@ -358,7 +498,7 @@ export function loginMember(
   }
 
   const expectedHash = hashPin(phone, pin);
-  if (found.pinHash !== expectedHash) {
+  if (found.pinHash !== expectedHash && found.pin !== pin) {
     if (typeof window !== 'undefined') {
       const lockRaw = localStorage.getItem(LOCKOUT_STORAGE_KEY);
       const count = lockRaw ? (JSON.parse(lockRaw).count || 0) + 1 : 1;
@@ -376,10 +516,19 @@ export function loginMember(
     return { success: false, message: 'รหัส PIN 6 หลักไม่ถูกต้อง' };
   }
 
+  const nextLoginCount = (found.loginCount || 1) + 1;
   const updated = members.map((m) =>
-    m.phone === found.phone ? { ...m, loginCount: (m.loginCount || 1) + 1 } : m
+    m.phone === found.phone ? { ...m, loginCount: nextLoginCount } : m
   );
   saveAllMembers(updated);
+
+  if (supabase) {
+    supabase
+      .from('members')
+      .update({ login_count: nextLoginCount })
+      .eq('phone', found.phone)
+      .then(() => {});
+  }
 
   if (typeof window !== 'undefined') {
     localStorage.removeItem(LOCKOUT_STORAGE_KEY);
@@ -398,17 +547,31 @@ export function addMemberHours(rawPhone: string, hoursToAdd: number) {
   if (typeof window === 'undefined') return;
   const phone = normalizePhone(rawPhone);
   const members = getAllMembers();
+  let newTotal = 0;
+  let newFree = 0;
   const updated = members.map((m) => {
     if (m.phone !== phone) return m;
-    const total = m.totalHoursAccumulated + hoursToAdd;
-    const newlyEarnedFree = Math.floor(total / 10);
+    newTotal = m.totalHoursAccumulated + hoursToAdd;
+    newFree = Math.floor(newTotal / 10);
     return {
       ...m,
-      totalHoursAccumulated: total,
-      freeHoursAvailable: newlyEarnedFree,
+      totalHoursAccumulated: newTotal,
+      freeHoursAvailable: newFree,
     };
   });
   saveAllMembers(updated);
+
+  if (supabase && newTotal > 0) {
+    supabase
+      .from('members')
+      .update({
+        total_hours_accumulated: newTotal,
+        free_hours_available: newFree,
+      })
+      .eq('phone', phone)
+      .then(() => {});
+  }
+
   window.dispatchEvent(new Event('mood-auth-change'));
 }
 
@@ -513,6 +676,29 @@ export function saveNewBooking(newBooking: Booking): Booking[] {
     localStorage.setItem(BOOKINGS_STORAGE_KEY, JSON.stringify(updated));
     window.dispatchEvent(new Event('mood-bookings-change'));
   }
+
+  if (supabase) {
+    supabase
+      .from('bookings')
+      .insert({
+        booking_code: newBooking.bookingCode,
+        room_id: newBooking.roomId,
+        customer_name: newBooking.customerName,
+        customer_phone: newBooking.customerPhone,
+        booking_date: newBooking.bookingDate,
+        start_time: newBooking.startTime,
+        end_time: newBooking.endTime,
+        total_hours: newBooking.totalHours,
+        room_charge: newBooking.roomCharge,
+        package_charge: newBooking.packageCharge,
+        total_amount: newBooking.totalAmount,
+        deposit_amount: newBooking.depositAmount,
+        status: newBooking.status,
+        slip_image_url: newBooking.slipImageUrl || null,
+      })
+      .then(() => {});
+  }
+
   return updated;
 }
 
@@ -521,13 +707,28 @@ export function updateBookingStatusInStore(
   newStatus: BookingStatus
 ): Booking[] {
   const current = getAllBookings();
-  const updated = current.map((b) =>
-    b.id === bookingId ? { ...b, status: newStatus } : b
-  );
+  let targetCode = '';
+  const updated = current.map((b) => {
+    if (b.id === bookingId) {
+      targetCode = b.bookingCode;
+      return { ...b, status: newStatus };
+    }
+    return b;
+  });
+
   if (typeof window !== 'undefined') {
     localStorage.setItem(BOOKINGS_STORAGE_KEY, JSON.stringify(updated));
     window.dispatchEvent(new Event('mood-bookings-change'));
   }
+
+  if (supabase && targetCode) {
+    supabase
+      .from('bookings')
+      .update({ status: newStatus })
+      .eq('booking_code', targetCode)
+      .then(() => {});
+  }
+
   return updated;
 }
 

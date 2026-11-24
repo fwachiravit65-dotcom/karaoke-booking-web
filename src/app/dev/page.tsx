@@ -8,13 +8,17 @@ import {
   MemberProfile,
   DevAccount,
   StaffAccount,
+  AccountRole,
   getAllMembers,
   getAllRegisteredStaff,
   toggleMemberStaffRole,
+  registerMember,
   getAllBookings,
   updateBookingStatusInStore,
   getSiteUsageCount,
   verifyDevLogin,
+  isCloudDatabaseConnected,
+  syncFromCloudDatabase,
 } from '@/lib/member-store';
 
 const DEV_SESSION_KEY = 'mood_karaoke_dev_session_v1';
@@ -32,15 +36,24 @@ export default function DevConsolePage() {
   const [siteVisits, setSiteVisits] = useState<number>(0);
   const [searchAccount, setSearchAccount] = useState<string>('');
   const [toastMsg, setToastMsg] = useState<string>('');
+  const [cloudConnected, setCloudConnected] = useState<boolean>(false);
+
+  // Quick Add Account Form in DEV
+  const [newPhone, setNewPhone] = useState('');
+  const [newName, setNewName] = useState('');
+  const [newPin, setNewPin] = useState('');
+  const [newRole, setNewRole] = useState<AccountRole>('STAFF');
 
   const refreshAllData = () => {
     setMembers(getAllMembers());
     setStaffList(getAllRegisteredStaff());
     setBookings(getAllBookings());
     setSiteVisits(getSiteUsageCount());
+    setCloudConnected(isCloudDatabaseConnected());
   };
 
   useEffect(() => {
+    syncFromCloudDatabase().then(() => refreshAllData());
     refreshAllData();
     try {
       const saved = sessionStorage.getItem(DEV_SESSION_KEY);
@@ -68,7 +81,7 @@ export default function DevConsolePage() {
     }
     setDevSession(res.account);
     sessionStorage.setItem(DEV_SESSION_KEY, JSON.stringify(res.account));
-    refreshAllData();
+    syncFromCloudDatabase().then(() => refreshAllData());
   };
 
   const handleDevLogout = () => {
@@ -89,8 +102,27 @@ export default function DevConsolePage() {
     setStaffList(getAllRegisteredStaff());
     setToastMsg(
       willBeStaff
-        ? `✓ โปรโมทบัญชี "${member.name}" (${member.phone}) เป็นบัญชีพนักงานร้านเรียบร้อย! (ใช้ PIN ${member.pin} เข้าหน้า /admin ได้ทันที)`
+        ? `✓ โปรโมทบัญชี "${member.name}" (${member.phone}) เป็นบัญชีพนักงานร้านเรียบร้อย! (ใช้ไอดี ${member.phone} + PIN ${member.pin} เข้าหน้า /admin ได้ทันที)`
         : `ปรับสถานะ "${member.name}" (${member.phone}) กลับเป็นบัญชีลูกค้าทั่วไปเรียบร้อย`
+    );
+    setTimeout(() => setToastMsg(''), 5000);
+  };
+
+  const handleQuickAddAccount = (e: React.FormEvent) => {
+    e.preventDefault();
+    const res = registerMember(newPhone, newName, newPin, newRole);
+    if (!res.success) {
+      setToastMsg(`❌ ${res.message}`);
+      return;
+    }
+    setNewPhone('');
+    setNewName('');
+    setNewPin('');
+    refreshAllData();
+    setToastMsg(
+      `✓ เพิ่มบัญชี "${newName}" (${newPhone}) สถานะ ${
+        newRole === 'STAFF' ? 'พนักงานร้าน (STAFF)' : 'ลูกค้าทั่วไป'
+      } เรียบร้อยแล้ว!`
     );
     setTimeout(() => setToastMsg(''), 5000);
   };
@@ -218,7 +250,30 @@ export default function DevConsolePage() {
         </div>
       </div>
 
-      {/* Toast Notification when promoting/demoting */}
+      {/* Database Connection Mode Notice */}
+      <div className="p-4 sm:p-5 hairline-all bg-[#EFECE6]/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <span
+              className={`w-2.5 h-2.5 rounded-full ${
+                cloudConnected ? 'bg-emerald-600' : 'bg-[#D9381E]'
+              }`}
+            />
+            <span className="text-xs sm:text-sm font-bold text-[#121212]">
+              {cloudConnected
+                ? 'สถานะฐานข้อมูล: เชื่อมต่อ Cloud Database (Supabase) แล้ว — ซิงค์ข้อมูลข้ามทุกเครื่องอัตโนมัติ'
+                : 'สถานะฐานข้อมูลตอนนี้: โหมดจำลองในเบราว์เซอร์ (Local Browser Mode — เก็บข้อมูลแยกตามเครื่อง)'}
+            </span>
+          </div>
+          {!cloudConnected && (
+            <p className="text-xs text-[#68645E] mt-1 leading-relaxed">
+              * หากเพื่อนกดสมัครจากโทรศัพท์อีกเครื่อง ข้อมูลจะยังอยู่ในเครื่องนั้นจนกว่าจะเชื่อมฐานข้อมูลกลาง <strong>Supabase (ฟรี)</strong> หรือคุณสามารถเพิ่มเบอร์โทรของเพื่อน/พนักงานได้จากกล่องด้านล่างนี้ทันทีครับ
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Toast Notification */}
       {toastMsg && (
         <div className="p-4 hairline-all bg-[#121212] text-[#F7F5F0] text-xs sm:text-sm font-semibold flex items-center justify-between">
           <span>{toastMsg}</span>
@@ -244,7 +299,6 @@ export default function DevConsolePage() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 hairline-t hairline-l bg-[#EFECE6]/60">
-          {/* Box 1: All Registered Accounts */}
           <div className="p-6 hairline-r hairline-b">
             <span className="text-xs font-bold text-[#68645E] block mb-2">
               01 / บัญชีที่สมัครทั้งหมดในระบบ
@@ -257,7 +311,6 @@ export default function DevConsolePage() {
             </p>
           </div>
 
-          {/* Box 2: Total Usage / Site Access */}
           <div className="p-6 hairline-r hairline-b">
             <span className="text-xs font-bold text-[#68645E] block mb-2">
               02 / ยอดเข้าใช้งานระบบ &amp; เข้าใช้บริการ
@@ -270,7 +323,6 @@ export default function DevConsolePage() {
             </p>
           </div>
 
-          {/* Box 3: Total Bookings */}
           <div className="p-6 hairline-r hairline-b">
             <span className="text-xs font-bold text-[#68645E] block mb-2">
               03 / ยอดจองทั้งหมด (Total Bookings)
@@ -283,7 +335,6 @@ export default function DevConsolePage() {
             </p>
           </div>
 
-          {/* Box 4: Rejected Bookings */}
           <div className="p-6 hairline-r hairline-b">
             <span className="text-xs font-bold text-[#D9381E] block mb-2">
               04 / ยอดปฏิเสธการจอง (Rejected)
@@ -296,7 +347,6 @@ export default function DevConsolePage() {
             </p>
           </div>
 
-          {/* Box 5: Confirmed Revenue */}
           <div className="p-6 hairline-r hairline-b">
             <span className="text-xs font-bold text-[#68645E] block mb-2">
               05 / ยอดรายได้จากการจองที่อนุมัติแล้ว
@@ -309,7 +359,6 @@ export default function DevConsolePage() {
             </p>
           </div>
 
-          {/* Box 6: Active Staff Count */}
           <div className="p-6 hairline-r hairline-b">
             <span className="text-xs font-bold text-[#68645E] block mb-2">
               06 / รหัสพนักงานที่เข้าหน้า /admin ได้
@@ -318,7 +367,7 @@ export default function DevConsolePage() {
               {staffList.length} <span className="text-sm font-normal text-[#68645E]">รหัส</span>
             </div>
             <p className="text-xs text-[#68645E] mt-2">
-              โปรโมทจากบัญชีสมาชิก <strong>{staffAccountsCount}</strong> คน + รหัสกลาง 1 รหัส
+              โปรโมทจากบัญชีสมาชิกทั้งหมด <strong>{staffAccountsCount}</strong> คน
             </p>
           </div>
         </div>
@@ -327,14 +376,14 @@ export default function DevConsolePage() {
       {/* =====================================================================
           PART 2: ข้อมูลบัญชีที่สมัครทั้งหมดในระบบ & ปุ่มโปรโมทเป็นพนักงานร้าน
          ===================================================================== */}
-      <div>
-        <div className="mb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
             <h2 className="font-display text-xl sm:text-2xl text-[#121212]">
               2. ข้อมูลบัญชีที่สมัครทั้งหมดในระบบ &amp; โปรโมทเป็นพนักงานร้าน ({members.length} บัญชี)
             </h2>
             <p className="text-xs text-[#68645E] mt-1">
-              * พนักงานใหม่สามารถสมัครด้วยเบอร์โทร + PIN 6 หลักที่หน้าสมาชิกปกติ แล้วให้ DEV กดปุ่ม <strong>&ldquo;โปรโมทเป็นพนักงานร้าน&rdquo;</strong> ที่ตารางนี้ได้เลย
+              * กดปุ่ม <strong>&ldquo;⬆️ โปรโมทเป็นพนักงานร้าน&rdquo;</strong> เพื่อให้เบอร์นั้นใช้ล็อกอินเข้าหน้าจัดการร้าน (/admin) ได้ทันที
             </p>
           </div>
 
@@ -346,6 +395,75 @@ export default function DevConsolePage() {
             className="px-4 py-2.5 bg-[#F7F5F0] hairline-all text-xs text-[#121212] focus:outline-none w-full sm:w-64"
           />
         </div>
+
+        {/* Quick Add Account Form inside DEV Console */}
+        <form
+          onSubmit={handleQuickAddAccount}
+          className="p-5 hairline-all bg-[#EFECE6]/50 grid grid-cols-1 sm:grid-cols-12 gap-3 items-end"
+        >
+          <div className="sm:col-span-3">
+            <label className="block text-[11px] font-bold text-[#121212] mb-1">
+              + เพิ่มบัญชีใหม่ (เบอร์โทร 10 หลัก)
+            </label>
+            <input
+              type="tel"
+              maxLength={10}
+              placeholder="เช่น 08XXXXXXXX"
+              value={newPhone}
+              onChange={(e) => setNewPhone(e.target.value.replace(/[^0-9]/g, ''))}
+              className="w-full px-3.5 py-2.5 bg-[#F7F5F0] hairline-all text-xs font-bold"
+              required
+            />
+          </div>
+          <div className="sm:col-span-3">
+            <label className="block text-[11px] font-bold text-[#121212] mb-1">
+              ชื่อเล่น
+            </label>
+            <input
+              type="text"
+              placeholder="เช่น บีม"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              className="w-full px-3.5 py-2.5 bg-[#F7F5F0] hairline-all text-xs"
+              required
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="block text-[11px] font-bold text-[#121212] mb-1">
+              รหัส PIN (6 หลัก)
+            </label>
+            <input
+              type="text"
+              maxLength={6}
+              placeholder="เช่น 123456"
+              value={newPin}
+              onChange={(e) => setNewPin(e.target.value.replace(/[^0-9]/g, ''))}
+              className="w-full px-3.5 py-2.5 bg-[#F7F5F0] hairline-all text-xs font-bold"
+              required
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="block text-[11px] font-bold text-[#121212] mb-1">
+              สิทธิ์เริ่มต้น
+            </label>
+            <select
+              value={newRole}
+              onChange={(e) => setNewRole(e.target.value as AccountRole)}
+              className="w-full px-3 py-2.5 bg-[#F7F5F0] hairline-all text-xs font-bold"
+            >
+              <option value="STAFF">★ พนักงานร้าน (STAFF)</option>
+              <option value="CUSTOMER">ลูกค้าทั่วไป (CUSTOMER)</option>
+            </select>
+          </div>
+          <div className="sm:col-span-2">
+            <button
+              type="submit"
+              className="w-full py-2.5 bg-[#121212] hover:bg-[#D9381E] text-[#F7F5F0] text-xs font-bold editorial-transition"
+            >
+              + เพิ่มเข้าสู่ระบบ
+            </button>
+          </div>
+        </form>
 
         <div className="hairline-all overflow-x-auto bg-[#F7F5F0]">
           <table className="w-full text-left border-collapse text-xs sm:text-sm whitespace-nowrap">
@@ -430,7 +548,7 @@ export default function DevConsolePage() {
             3. รายชื่อพนักงานร้านที่มีสิทธิ์เข้าหน้าจัดการร้าน (/admin) ทั้งหมด ({staffList.length} รหัส)
           </h2>
           <span className="text-xs text-[#68645E]">
-            พนักงานสามารถใช้รหัส PIN 6 หลักของตนเองกดเข้าหน้า /admin ได้ทันที
+            พนักงานใช้ไอดีเบอร์โทร + รหัส PIN 6 หลักของตนเองกดเข้าหน้า /admin ได้ทันที
           </span>
         </div>
 
@@ -439,7 +557,7 @@ export default function DevConsolePage() {
             <thead>
               <tr className="hairline-b bg-[#EFECE6] text-xs font-bold text-[#68645E]">
                 <th className="py-3.5 px-5 hairline-r">รหัสพนักงาน</th>
-                <th className="py-3.5 px-5 hairline-r">เบอร์โทรศัพท์</th>
+                <th className="py-3.5 px-5 hairline-r">ไอดี (เบอร์โทรศัพท์)</th>
                 <th className="py-3.5 px-5 hairline-r">ชื่อพนักงาน</th>
                 <th className="py-3.5 px-5 hairline-r">รหัส PIN เข้าหน้า /admin</th>
                 <th className="py-3.5 px-5">ที่มาของสิทธิ์</th>
@@ -457,9 +575,7 @@ export default function DevConsolePage() {
                     {st.pinCode}
                   </td>
                   <td className="py-3.5 px-5 text-xs text-[#68645E]">
-                    {st.isPromotedMember
-                      ? '✓ โปรโมทจากบัญชีสมาชิกผ่านหน้า DEV'
-                      : 'รหัสกลางประจำเคาน์เตอร์ร้าน'}
+                    ✓ โปรโมทจากบัญชีสมาชิกผ่านหน้า DEV
                   </td>
                 </tr>
               ))}
